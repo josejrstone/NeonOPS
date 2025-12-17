@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neon Ops: Working</title>
+    <title>Neon Ops: Solo Ultimate</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap');
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; touch-action: none; }
@@ -31,7 +31,6 @@
         .m-icon:active { transform: scale(0.9); background: rgba(0,255,255,0.3); }
         .m-qty { position: absolute; bottom: -5px; right: -5px; background: #f00; font-size: 12px; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
         
-        /* NUKE FIXED: Click direto */
         #nuke-container { position: absolute; top: 120px; left: 50%; transform: translateX(-50%); width: 100px; height: 100px; display: flex; justify-content: center; align-items: center; z-index: 100; pointer-events: auto; }
         #nuke-btn { width: 80px; height: 80px; background: radial-gradient(#ff0, #f00); border: 4px solid #fff; border-radius: 50%; display: none; justify-content: center; align-items: center; font-size: 40px; animation: pulse 0.5s infinite; box-shadow: 0 0 25px #f00; }
         #nuke-btn:active { transform: scale(0.9); }
@@ -103,7 +102,7 @@
     </div>
 
     <div id="startMenu" class="modal">
-        <h1>NEON OPS<br><span style="font-size:16px; color:white;">FINAL WORKING</span></h1>
+        <h1>NEON OPS<br><span style="font-size:16px; color:white;">SOLO ULTIMATE</span></h1>
         <p style="color:#aaa; font-size:14px;">Cor do Agente</p>
         <div class="color-picker">
             <div class="c-opt selected" style="background:#0ff" onclick="setColor('#0ff', this)"></div>
@@ -171,7 +170,6 @@
     window.addEventListener('resize', resize);
     resize();
 
-    // --- AUDIO ---
     const AudioSys = {
         ctx: null,
         init: function() { if(!this.ctx) this.ctx=new(window.AudioContext||window.webkitAudioContext)(); },
@@ -184,7 +182,6 @@
         zap: function() { this.init(); this.play(150,'sawtooth',0.3); }
     };
 
-    // --- GLOBALS ---
     const GAME = {
         active: false, paused: false, level: 1, width: 2500, height: 2500,
         camera: {x:0, y:0}, shake:0, money:0, score: 0,
@@ -206,7 +203,6 @@
     let bots=[], bullets=[], items=[], obstacles=[], machines=[], traps=[], texts=[];
     let exitPortal = null;
 
-    // --- CLASSES ---
     class Player {
         constructor(x, y) {
             this.x=x; this.y=y; this.r=20;
@@ -239,13 +235,11 @@
         }
 
         handleInput(speedMult) {
-            let moving = false;
             if (GAME.controlMode.includes('single')) {
                 if(INPUT.single.active) {
                     this.x += INPUT.single.x * 4 * speedMult;
                     this.y += INPUT.single.y * 4 * speedMult;
                     this.angle = Math.atan2(INPUT.single.y, INPUT.single.x);
-                    moving = true;
                 }
                 let target = getNearestTarget(500);
                 if(target) this.angle = Math.atan2(target.y - this.y, target.x - this.x);
@@ -255,7 +249,6 @@
                     this.x += INPUT.move.x * 4 * speedMult;
                     this.y += INPUT.move.y * 4 * speedMult;
                     if (!INPUT.aim.active) this.angle = Math.atan2(INPUT.move.y, INPUT.move.x);
-                    moving = true;
                 }
                 if(INPUT.aim.active) {
                     this.angle = Math.atan2(INPUT.aim.y, INPUT.aim.x);
@@ -424,16 +417,18 @@
         
         generateWorld();
         
-        // Spawn Player Safe
         player = new Player(GAME.width/2, GAME.height/2);
         
+        // Câmera imediata no jogador
+        GAME.camera.x = player.x - canvas.width/2;
+        GAME.camera.y = player.y - canvas.height/2;
+
         GAME.active = true; GAME.paused = false;
         loop();
     }
 
     function loop() {
         if(!GAME.active) return;
-        if(!player) return; // Prevent crash if player is missing
         if(!GAME.paused) update();
         draw();
         drawRadar();
@@ -591,7 +586,7 @@
 
         machines.forEach(m => m.draw());
         bots.forEach(b => b.draw());
-        player.draw();
+        if(player) player.draw(); // DRAW SAFE CHECK
         bullets.forEach(b => { if(onScreen(b.x, b.y, 10)) {
             ctx.fillStyle=b.color; ctx.beginPath(); ctx.arc(b.x,b.y,4,0,Math.PI*2); ctx.fill(); 
         }});
@@ -606,7 +601,7 @@
         rctx.fillStyle='red'; bots.forEach(b=>{ rctx.beginPath(); rctx.arc(b.x*sx, b.y*sy, 3, 0, Math.PI*2); rctx.fill(); });
         rctx.fillStyle='yellow'; items.forEach(i=>{ rctx.fillRect(i.x*sx, i.y*sy, 2, 2); });
         if(exitPortal) { rctx.fillStyle='#b0f'; if(Math.floor(Date.now()/200)%2===0) rctx.fillRect(exitPortal.x*sx-2, exitPortal.y*sy-2, 4, 4); }
-        rctx.fillStyle='#0f0'; rctx.beginPath(); rctx.arc(player.x*sx, player.y*sy, 4, 0, Math.PI*2); rctx.fill();
+        rctx.fillStyle='#0f0'; if(player) { rctx.beginPath(); rctx.arc(player.x*sx, player.y*sy, 4, 0, Math.PI*2); rctx.fill(); }
     }
 
     function updateHUD() {
@@ -634,16 +629,16 @@
     function gameOver() { GAME.active=false; document.getElementById('deadMenu').classList.remove('hidden'); document.getElementById('finalScore').innerText = `SCORE: ${GAME.score}`; document.getElementById('reportTable').innerHTML = `<tr><td>Grunts</td><td>${GAME.stats.basic}</td></tr><tr><td>Rushers</td><td>${GAME.stats.rusher}</td></tr><tr><td>Snipers</td><td>${GAME.stats.sniper}</td></tr><tr><td>Chefes</td><td>${GAME.stats.boss}</td></tr>`; }
     function setColor(c, el) { GAME.playerColor = c; document.querySelectorAll('.c-opt').forEach(d => d.classList.remove('selected')); el.classList.add('selected'); }
 
-    // GENERATE SAFE WORLD FIX
+    // GENERATE WORLD SAFE (Limit loop)
     function generateWorld() {
         bots=[]; obstacles=[]; items=[]; traps=[]; exitPortal=null;
-        const safeZone = 400; // REDUCED SAFE ZONE TO PREVENT INFINITE LOOP
-        
+        const safeZone = 400; // Small safe zone to fit screen
         let attempts;
+        
         for(let i=0; i<30; i++) {
             let x,y,d; attempts=0;
             do { x=Math.random()*GAME.width; y=Math.random()*GAME.height; d=Math.hypot(x-GAME.width/2, y-GAME.height/2); attempts++; } 
-            while(d < safeZone && attempts < 50); 
+            while(d < safeZone && attempts < 20); 
             obstacles.push({x:x, y:y, w:100, h:100});
         }
         
@@ -666,7 +661,7 @@
                 if(GAME.level>5 && Math.random()<0.2) t='sniper';
                 attempts=0;
                 do { bx=Math.random()*GAME.width; by=Math.random()*GAME.height; d=Math.hypot(bx-GAME.width/2, by-GAME.height/2); attempts++; } 
-                while(d < safeZone && attempts < 50);
+                while(d < safeZone && attempts < 20);
                 bots.push(new Bot(bx, by, t));
             }
         }
@@ -715,12 +710,17 @@
         document.getElementById('btnSwapStart').innerText = sTxt; document.getElementById('btnSwapPause').innerText = sTxt;
     }
 
-    function cycleControlMode() { if(GAME.controlMode === 'dual') GAME.controlMode = 'single_auto'; else if(GAME.controlMode === 'single_auto') GAME.controlMode = 'single_manual'; else GAME.controlMode = 'dual'; applyControlMode(); }
+    function cycleControlMode() {
+        if(GAME.controlMode === 'dual') GAME.controlMode = 'single_auto'; else if(GAME.controlMode === 'single_auto') GAME.controlMode = 'single_manual'; else GAME.controlMode = 'dual';
+        applyControlMode();
+    }
+
     function toggleSide() { GAME.inverted = !GAME.inverted; applyControlMode(); }
 
-    // MACHINE BUTTONS EVENTS (Fixed Touch)
-    function bindMach(id, t) { const el=document.getElementById(id); const fn=(e)=>{e.preventDefault(); e.stopPropagation(); spawnMachine(t)}; el.addEventListener('touchstart', fn); el.addEventListener('mousedown', fn); }
-    bindMach('btn-turret','turret'); bindMach('btn-missile','missile'); bindMach('btn-grenade','grenade');
+    function handleMachineTouch(e, type) { e.preventDefault(); e.stopPropagation(); spawnMachine(type); }
+    document.getElementById('btn-turret').addEventListener('touchstart', (e)=>handleMachineTouch(e, 'turret'));
+    document.getElementById('btn-missile').addEventListener('touchstart', (e)=>handleMachineTouch(e, 'missile'));
+    document.getElementById('btn-grenade').addEventListener('touchstart', (e)=>handleMachineTouch(e, 'grenade'));
 
     document.getElementById('swapBtn').addEventListener('touchstart', e => { e.preventDefault(); player.wIdx = (player.wIdx+1) % WEAPONS.length; updateHUD(); });
     document.getElementById('fire-btn').addEventListener('touchstart', e => { e.preventDefault(); INPUT.manualFire = true; });
