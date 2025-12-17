@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Ops: Single Stick</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-user-select: none; touch-action: none; }
+        body { background: #000; overflow: hidden; font-family: 'Rajdhani', sans-serif; color: white; }
+        canvas { display: block; background: #111; }
+
+        /* UI LAYER */
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+
+        /* Topo */
+        .top-bar { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; align-items: flex-start; pointer-events: auto; }
+        .bars { display: flex; flex-direction: column; gap: 4px; pointer-events: none; }
+        .bar-bg { width: 130px; height: 12px; background: #222; border: 1px solid #555; transform: skewX(-15deg); }
+        .hp-fill { width: 100%; height: 100%; background: #f00; transition: width 0.1s linear; } 
+        .sh-fill { width: 0%; height: 100%; background: #00aaff; transition: width 0.1s; }
+        
+        .info { text-align: right; text-shadow: 1px 1px 2px black; pointer-events: none; }
+        .lvl { font-size: 24px; color: #ffeb3b; font-weight: bold; }
+        .money { font-size: 20px; color: #0f0; }
+
+        /* Botão Pause */
+        #pause-btn {
+            background: rgba(0,0,0,0.5); border: 2px solid #fff; color: white;
+            width: 40px; height: 40px; border-radius: 5px; font-weight: bold;
+            display: flex; justify-content: center; align-items: center; cursor: pointer;
+            pointer-events: auto; margin-left: 10px;
+        }
+
+        /* Radar */
+        #radar {
+            position: absolute; top: 60px; left: 10px;
+            width: 90px; height: 90px;
+            background: rgba(0, 20, 0, 0.6);
+            border: 2px solid #0f0; border-radius: 50%;
+            pointer-events: none; overflow: hidden;
+        }
+        #radar-canvas { width: 100%; height: 100%; }
+
+        /* Controles e Máquinas */
+        .machines { 
+            position: absolute; right: 15px; top: 90px; 
+            display: flex; flex-direction: column; gap: 15px; pointer-events: auto; 
+        }
+        .m-icon { width: 45px; height: 45px; background: rgba(0,0,0,0.7); border: 2px solid #0ff; border-radius: 8px; display: flex; justify-content: center; align-items: center; font-size: 20px; position: relative; }
+        .m-icon:active { transform: scale(0.9); background: rgba(0,255,255,0.3); }
+        .m-qty { position: absolute; bottom: -2px; right: -2px; background: #f00; font-size: 10px; padding: 1px 4px; border-radius: 3px; font-weight: bold; }
+
+        #nuke-btn {
+            position: absolute; top: 120px; left: 50%; transform: translateX(-50%);
+            width: 60px; height: 60px; background: radial-gradient(#ff0, #f00);
+            border: 3px solid #fff; border-radius: 50%; display: none; justify-content: center; align-items: center;
+            font-size: 28px; pointer-events: auto; animation: pulse 0.5s infinite;
+            box-shadow: 0 0 15px #f00; z-index: 50;
+        }
+
+        .w-btn {
+            position: absolute; bottom: 40px; right: 20px; width: 65px; height: 65px; border-radius: 50%;
+            background: rgba(0,0,0,0.6); border: 2px solid #fff; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; pointer-events: auto; z-index: 20;
+        }
+        .w-name { font-size: 10px; font-weight: bold; }
+        .w-ammo { font-size: 16px; }
+
+        /* Joysticks */
+        .joy-zone {
+            position: absolute; bottom: 40px; width: 130px; height: 130px;
+            background: rgba(255, 255, 255, 0.05); border-radius: 50%;
+            border: 2px dashed rgba(255, 255, 255, 0.15);
+            pointer-events: auto; display: flex; justify-content: center; align-items: center;
+        }
+        .j-left { left: 30px; } 
+        .j-right { right: 30px; bottom: 130px; }
+        
+        /* Joystick Único Central */
+        .j-center { 
+            left: 50%; bottom: 50px; transform: translateX(-50%); 
+            width: 180px; height: 180px; /* Maior */
+            border-color: rgba(0, 255, 255, 0.3);
+        }
+
+        .knob { width: 50px; height: 50px; background: rgba(0, 255, 255, 0.4); border-radius: 50%; pointer-events: none; }
+        .k-red { background: rgba(255, 50, 50, 0.4); }
+        .k-center { width: 70px; height: 70px; background: rgba(0, 255, 0, 0.4); }
+
+        /* Menus */
+        .modal {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10, 10, 15, 0.98); display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 100; pointer-events: auto;
+            overflow-y: auto; padding: 20px;
+        }
+        .hidden { display: none !important; }
+
+        h1 { color: #0ff; font-size: 32px; margin-bottom: 10px; text-align: center; text-transform: uppercase; }
+        h2 { color: #ffeb3b; margin: 10px 0; font-size: 22px; }
+        
+        .btn {
+            background: linear-gradient(45deg, #00aaff, #0055ff); border: none; padding: 12px 25px;
+            color: white; font-family: 'Rajdhani'; font-size: 18px; font-weight: bold;
+            margin: 8px; border-radius: 5px; min-width: 200px; cursor: pointer;
+        }
+        .btn:active { transform: scale(0.95); }
+        .btn-green { background: linear-gradient(45deg, #00aa00, #00ff00); color: black; }
+        .btn-red { background: linear-gradient(45deg, #aa0000, #ff0000); color: white; }
+        .btn-shop { background: #333; border: 1px solid #555; display: flex; justify-content: space-between; align-items: center; width: 280px; padding: 10px; margin: 5px 0; cursor: pointer;}
+        
+        .perk-container { display: flex; gap: 8px; }
+        .perk { background: #222; border: 1px solid #444; padding: 10px; border-radius: 8px; width: 85px; text-align: center; cursor: pointer;}
+        .perk:active { border-color: #0ff; background: #333; }
+
+        .color-picker { display: flex; gap: 10px; margin: 15px 0; }
+        .c-opt { width: 40px; height: 40px; border-radius: 50%; border: 2px solid #555; cursor: pointer; }
+        .c-opt.selected { border-color: #fff; box-shadow: 0 0 10px white; }
+
+        .report-table { width: 100%; max-width: 300px; border-collapse: collapse; margin-bottom: 20px; color: #ccc; }
+        .report-table td { padding: 5px; border-bottom: 1px solid #333; }
+        .report-table td:last-child { text-align: right; color: #fff; font-weight: bold; }
+
+        @keyframes pulse { 0% { transform: translateX(-50%) scale(1); } 50% { transform: translateX(-50%) scale(1.1); box-shadow: 0 0 20px red; } 100% { transform: translateX(-50%) scale(1); } }
+    </style>
+</head>
+<body>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="ui-layer">
+        <div class="top-bar">
+            <div style="display:flex; align-items:center;">
+                <div class="bars">
+                    <div class="bar-bg"><div class="hp-fill" id="hpBar"></div></div>
+                    <div class="bar-bg" style="width: 100px; height: 6px; margin-top:2px;"><div class="sh-fill" id="shBar"></div></div>
+                </div>
+                <div id="pause-btn" onclick="togglePause()">||</div>
+            </div>
+            <div class="info">
+                <div class="lvl" id="lvlDisp">NÍVEL 1</div>
+                <div class="money" id="moneyDisp">$0</div>
+            </div>
+        </div>
+
+        <div id="radar"><canvas id="radar-canvas"></canvas></div>
+        <div id="nuke-btn" onclick="useNuke()">☢️</div>
+
+        <div class="machines">
+            <div class="m-icon" onclick="spawnMachine('turret')">🔫<div class="m-qty" id="q-turret">0</div></div>
+            <div class="m-icon" onclick="spawnMachine('missile')">🚀<div class="m-qty" id="q-missile">0</div></div>
+            <div class="m-icon" onclick="spawnMachine('grenade')">💣<div class="m-qty" id="q-grenade">0</div></div>
+        </div>
+
+        <div class="w-btn" id="swapBtn">
+            <div class="w-name" id="wName">PISTOLA</div>
+            <div class="w-ammo" id="wAmmo">∞</div>
+        </div>
+
+        <div id="joy-move" class="joy-zone j-left"><div class="knob" id="knob-move"></div></div>
+        <div id="joy-aim" class="joy-zone j-right"><div class="knob k-red" id="knob-aim"></div></div>
+        
+        <div id="joy-single" class="joy-zone j-center hidden"><div class="knob k-center" id="knob-single"></div></div>
+    </div>
+
+    <div id="startMenu" class="modal">
+        <h1>NEON OPS<br><span style="font-size:16px; color:white;">SINGLE STICK</span></h1>
+        
+        <p style="color:#aaa; font-size:14px;">Cor do Agente</p>
+        <div class="color-picker">
+            <div class="c-opt selected" style="background:#0ff" onclick="setColor('#0ff', this)"></div>
+            <div class="c-opt" style="background:#0f0" onclick="setColor('#0f0', this)"></div>
+            <div class="c-opt" style="background:#f0f" onclick="setColor('#f0f', this)"></div>
+            <div class="c-opt" style="background:#ff0" onclick="setColor('#ff0', this)"></div>
+        </div>
+
+        <button class="btn" onclick="startGame()">INICIAR AVENTURA</button>
+        
+        <div style="display:flex; gap:10px; margin-top:10px;">
+            <button class="btn btn-shop" style="width:auto" id="btnMode" onclick="toggleControlMode()">CONTROLES: DUPLO</button>
+            <button class="btn btn-shop" style="width:auto" id="btnSwap" onclick="toggleControls()">INVERTER LADO</button>
+        </div>
+    </div>
+
+    <div id="pauseMenu" class="modal hidden">
+        <h1>PAUSA</h1>
+        <button class="btn" onclick="togglePause()">CONTINUAR</button>
+        <button class="btn btn-red" onclick="location.reload()">SAIR DO JOGO</button>
+    </div>
+
+    <div id="shopMenu" class="modal hidden">
+        <h2>MISSÃO CUMPRIDA!</h2>
+        <div style="display:flex; gap:15px; font-size:14px; margin-bottom:10px; color:#ccc;">
+            <div>Dano: <span id="stat-dmg" style="color:#0ff">100%</span></div>
+            <div>Vida: <span id="stat-hp" style="color:#0f0">100</span></div>
+        </div>
+
+        <div id="perkSection">
+            <p style="color:#aaa; margin:5px; font-size:14px;">Escolha uma Melhoria:</p>
+            <div class="perk-container">
+                <div class="perk" onclick="pickPerk('dmg')">⚔️<br>+20% Dano</div>
+                <div class="perk" onclick="pickPerk('hp')">❤️<br>+25 Vida</div>
+                <div class="perk" onclick="pickPerk('luck')">🍀<br>+Sorte</div>
+            </div>
+        </div>
+        <div id="perkMsg" class="hidden" style="color:#0f0; margin:10px; font-weight:bold;">MELHORIA APLICADA!</div>
+        
+        <h2 style="margin-top:15px; color:#0f0; font-size:18px;">LOJA ($<span id="shopMoney">0</span>)</h2>
+        <div class="btn-shop" onclick="buyItem('turret', 200)"><span>Torreta</span> <span style="color:#0f0">$200</span></div>
+        <div class="btn-shop" onclick="buyItem('missile', 100)"><span>Míssil x3</span> <span style="color:#0f0">$100</span></div>
+        <div class="btn-shop" onclick="buyItem('grenade', 50)"><span>Granada x2</span> <span style="color:#0f0">$50</span></div>
+
+        <button class="btn btn-green" style="margin-top:20px;" onclick="nextLevel()">PRÓXIMA MISSÃO</button>
+    </div>
+
+    <div id="deadMenu" class="modal hidden">
+        <h1 style="color:red">FIM DE JOGO</h1>
+        <h3>RELATÓRIO</h3>
+        <table class="report-table" id="reportTable"></table>
+        <button class="btn" onclick="location.reload()">MENU PRINCIPAL</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d', { alpha: false });
+        const radarCanvas = document.getElementById('radar-canvas');
+        const rctx = radarCanvas.getContext('2d');
+
+        let loopId = null;
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            radarCanvas.width = 100; radarCanvas.height = 100;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // --- ENGINE ---
+        const GAME = {
+            active: false, paused: false, level: 1, width: 2500, height: 2500,
+            camera: {x:0, y:0}, shake:0, money:0,
+            perks: { dmg:1, hpMult:1, luck:1 },
+            inv: { turret:0, missile:0, grenade:0 },
+            killStreak: 0, nukeReady: false, botsAlive: 0,
+            playerColor: '#0ff',
+            stats: { basic:0, rusher:0, sniper:0, boss:0 },
+            controlMode: 'dual' // 'dual' or 'single'
+        };
+
+        const INPUT = { 
+            move: {x:0, y:0, active:false, id:null}, 
+            aim: {x:0, y:0, active:false, id:null},
+            single: {x:0, y:0, active:false, id:null}
+        };
+
+        const WEAPONS = [
+            { id:0, name:'PISTOLA', dmg:25, rate:400, speed:15, spread:0.05, count:1, ammo:'∞', color:'#fff' },
+            { id:1, name:'RIFLE', dmg:15, rate:100, speed:22, spread:0.1, count:1, ammo:120, max:120, color:'#0ff' },
+            { id:2, name:'SHOTGUN', dmg:12, rate:900, speed:18, spread:0.3, count:6, ammo:30, max:30, color:'#ff0' }
+        ];
+
+        // --- CLASSES ---
+        class Player {
+            constructor(x, y) {
+                this.x = x; this.y = y; this.r = 20; 
+                this.hp = 100 * GAME.perks.hpMult; this.maxHp = this.hp; 
+                this.shield = 0; this.wIdx = 0; this.lastShot = 0;
+                this.angle = 0; this.regenTimer = 0;
+            }
+            update() {
+                let moving = false;
+
+                if (GAME.controlMode === 'single') {
+                    // MODO ÚNICO
+                    if (INPUT.single.active) {
+                        this.x += INPUT.single.x * 4;
+                        this.y += INPUT.single.y * 4;
+                        this.angle = Math.atan2(INPUT.single.y, INPUT.single.x);
+                        moving = true;
+                        // Atira automaticamente se estiver movendo
+                        if (Math.hypot(INPUT.single.x, INPUT.single.y) > 0.2) this.shoot();
+                    }
+                } else {
+                    // MODO DUPLO
+                    if(INPUT.move.active) {
+                        this.x += INPUT.move.x * 4;
+                        this.y += INPUT.move.y * 4;
+                        if (!INPUT.aim.active) this.angle = Math.atan2(INPUT.move.y, INPUT.move.x);
+                        moving = true;
+                    }
+                    if(INPUT.aim.active) {
+                        this.angle = Math.atan2(INPUT.aim.y, INPUT.aim.x);
+                        if(Math.hypot(INPUT.aim.x, INPUT.aim.y) > 0.4) this.shoot();
+                    }
+                }
+
+                // Limites
+                this.x = Math.max(20, Math.min(GAME.width-20, this.x));
+                this.y = Math.max(20, Math.min(GAME.height-20, this.y));
+                
+                // Regen
+                if (this.regenTimer > 0) {
+                    this.regenTimer--;
+                } else if (this.hp < this.maxHp && this.hp > 0) {
+                    const regenAmount = moving ? 0.02 : 0.15;
+                    this.hp += regenAmount;
+                    if(this.hp > this.maxHp) this.hp = this.maxHp;
+                    document.getElementById('hpBar').style.width = (this.hp/this.maxHp*100) + '%';
+                }
+
+                if(this.shield > 0) this.shield -= 0.1;
+            }
+            shoot() {
+                const now = Date.now();
+                const w = WEAPONS[this.wIdx];
+                if(now - this.lastShot > w.rate) {
+                    if(w.ammo === '∞' || w.ammo > 0) {
+                        if(w.ammo !== '∞') w.ammo--;
+                        this.lastShot = now; GAME.shake = 4; updateHUD();
+                        for(let i=0; i<w.count; i++) {
+                            const s = (Math.random()-0.5) * w.spread;
+                            bullets.push({
+                                x: this.x + Math.cos(this.angle)*25, y: this.y + Math.sin(this.angle)*25,
+                                vx: Math.cos(this.angle+s) * w.speed, vy: Math.sin(this.angle+s) * w.speed,
+                                dmg: w.dmg * GAME.perks.dmg, color: w.color, player: true, life: 80
+                            });
+                        }
+                    }
+                }
+            }
+            takeDamage(amt) {
+                if(this.shield > 0) {
+                    this.shield -= amt * 2; 
+                    showText(this.x, this.y, "ESCUDO!", "#0af");
+                    updateHUD();
+                    return;
+                }
+                this.hp -= amt;
+                this.regenTimer = 300; 
+                GAME.killStreak = 0; updateNuke();
+                GAME.shake = 10;
+                updateHUD();
+                if(this.hp <= 0) gameOver();
+            }
+            draw() {
+                if(!onScreen(this.x, this.y, 50)) return;
+                ctx.save(); ctx.translate(this.x, this.y);
+                if(this.shield > 0) {
+                    ctx.beginPath(); ctx.arc(0,0,28,0,Math.PI*2);
+                    ctx.strokeStyle=`rgba(0,180,255,${Math.min(1, this.shield/30)})`; ctx.lineWidth=3; ctx.stroke();
+                }
+                ctx.rotate(this.angle);
+                ctx.beginPath(); ctx.arc(0,0,20,0,Math.PI*2); ctx.fillStyle=GAME.playerColor; ctx.fill();
+                ctx.fillStyle='#333'; ctx.fillRect(10,-5,20,10);
+                ctx.restore();
+            }
+        }
+
+        class Bot {
+            constructor(x, y, type) {
+                this.x=x; this.y=y; this.type=type; this.lastShot=0;
+                if(type === 'boss') { this.hp=1000+(GAME.level*200); this.maxHp=this.hp; this.r=60; this.color='#fff'; this.speed=1.0; this.view=2000; }
+                else if(type === 'rusher') { this.hp=30+(GAME.level*5); this.r=18; this.color='#ff0'; this.speed=3.5; this.view=900; }
+                else if(type === 'sniper') { this.hp=60+(GAME.level*10); this.r=22; this.color='#b0f'; this.speed=1.5; this.view=1200; }
+                else { this.hp=40+(GAME.level*8); this.r=20; this.color='#f00'; this.speed=2; this.view=1000; }
+            }
+            update() {
+                const dx=player.x-this.x, dy=player.y-this.y;
+                const dist=Math.hypot(dx, dy), angle=Math.atan2(dy, dx);
+
+                const overlap = (this.r + player.r) - dist;
+                if(overlap > -5) {
+                    this.x -= Math.cos(angle) * 2;
+                    this.y -= Math.sin(angle) * 2;
+                }
+
+                if(dist < this.view) {
+                    let move = true;
+                    if (this.type === 'sniper' && dist < 500) move = false;
+                    
+                    if (move && dist > (this.type==='rusher'?20:200)) {
+                        this.x += Math.cos(angle)*this.speed; this.y += Math.sin(angle)*this.speed;
+                    }
+                    
+                    const now = Date.now();
+                    let rate = this.type==='rusher'?1000:(this.type==='sniper'?2000:(this.type==='boss'?1200:1500));
+                    
+                    if(now - this.lastShot > rate) {
+                        this.lastShot = now;
+                        let count = this.type==='rusher'?3:1;
+                        let spread = this.type==='rusher'?0.3:(this.type==='boss'?0.3:0.05);
+                        let dmg = 8 + GAME.level;
+                        for(let i=0; i<count; i++) {
+                            const s = (Math.random()-0.5)*spread;
+                            bullets.push({
+                                x:this.x, y:this.y, vx:Math.cos(angle+s)*10, vy:Math.sin(angle+s)*10,
+                                dmg:dmg, color:'#f55', player:false, life:100
+                            });
+                        }
+                    }
+                }
+            }
+            draw() {
+                if(!onScreen(this.x, this.y, this.r+20)) return;
+                ctx.save(); ctx.translate(this.x, this.y);
+                ctx.fillStyle = this.color;
+                if (this.type === 'rusher') {
+                    ctx.beginPath(); ctx.moveTo(15,0); ctx.lineTo(-10,10); ctx.lineTo(-10,-10); ctx.fill();
+                } else if (this.type === 'sniper') {
+                    ctx.fillRect(-15,-15,30,30);
+                } else {
+                    ctx.beginPath(); ctx.arc(0,0,this.r,0,Math.PI*2); ctx.fill();
+                }
+                if(this.type === 'boss') {
+                    ctx.fillStyle='red'; ctx.fillRect(-40,-80,80,10);
+                    ctx.fillStyle='#0f0'; ctx.fillRect(-40,-80,80*(this.hp/this.maxHp),10);
+                }
+                ctx.restore();
+            }
+        }
+
+        class Machine {
+            constructor(x, y, type) { this.x=x; this.y=y; this.type=type; this.dead=false; this.life=type==='turret'?1000:300; }
+            update() {
+                this.life--; if(this.life<=0 && this.type!=='grenade') this.dead=true;
+                if(this.type === 'turret' && this.life % 20 === 0) {
+                    let t = bots.find(b => Math.hypot(b.x-this.x, b.y-this.y) < 600);
+                    if(t) {
+                        const ang = Math.atan2(t.y-this.y, t.x-this.x);
+                        bullets.push({x:this.x, y:this.y, vx:Math.cos(ang)*15, vy:Math.sin(ang)*15, dmg:20, color:'#0f0', player:true, life:60});
+                    }
+                } else if(this.type === 'missile') {
+                    let t = bots[0];
+                    if(t) {
+                        const ang = Math.atan2(t.y-this.y, t.x-this.x);
+                        this.x += Math.cos(ang)*12; this.y += Math.sin(ang)*12;
+                        if(Math.hypot(t.x-this.x, t.y-this.y) < 30) { this.dead=true; createExplosion(this.x, this.y, 200); }
+                    } else this.dead=true;
+                } else if(this.type === 'grenade' && this.life <= 0) { this.dead=true; createExplosion(this.x, this.y, 300); }
+            }
+            draw() {
+                if(!onScreen(this.x, this.y, 20)) return;
+                ctx.save(); ctx.translate(this.x, this.y);
+                ctx.fillStyle = this.type==='turret'?'#0f0':(this.type==='missile'?'#f0f':'#ff0');
+                ctx.beginPath(); ctx.arc(0,0,15,0,Math.PI*2); ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        class Portal {
+            constructor(x, y) { this.x=x; this.y=y; this.angle=0; }
+            update() { this.angle += 0.05; }
+            draw() {
+                if(!onScreen(this.x, this.y, 50)) return;
+                ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.angle);
+                ctx.strokeStyle = '#b0f'; ctx.lineWidth = 4;
+                ctx.beginPath(); ctx.rect(-20,-20,40,40); ctx.stroke();
+                ctx.rotate(this.angle * -2);
+                ctx.beginPath(); ctx.rect(-15,-15,30,30); ctx.stroke();
+                ctx.restore();
+            }
+        }
+
+        let player, bots=[], bullets=[], items=[], texts=[], obstacles=[], machines=[], exitPortal = null;
+
+        function generateWorld() {
+            bots=[]; bullets=[]; items=[]; texts=[]; obstacles=[]; machines=[]; exitPortal = null;
+            
+            const isBoss = GAME.level % 5 === 0;
+            const theme = Math.floor((GAME.level-1)/5);
+            let obsColor = theme===1 ? '#444' : (theme===2 ? '#202' : '#333');
+
+            if(!isBoss) {
+                for(let i=0; i<30; i++) {
+                    obstacles.push({
+                        x: Math.random()*(GAME.width-200)+100, y: Math.random()*(GAME.height-200)+100,
+                        w: Math.random()*150+50, h: Math.random()*150+50, c: obsColor
+                    });
+                }
+            }
+
+            for(let i=0; i<10 + (GAME.perks.luck*2); i++) spawnLootAt(Math.random()*GAME.width, Math.random()*GAME.height);
+
+            player = new Player(GAME.width/2, GAME.height/2);
+
+            if(isBoss) {
+                bots.push(new Bot(100, 100, 'boss'));
+                showText(player.x, player.y-100, "CHEFÃO DETECTADO", "red");
+            } else {
+                const count = Math.max(1, Math.floor(GAME.level * 0.8));
+                for(let i=0; i<count; i++) {
+                    let type = 'basic';
+                    if (GAME.level > 2 && Math.random()<0.3) type = 'rusher';
+                    if (GAME.level > 5 && Math.random()<0.2) type = 'sniper';
+                    let bx, by, d;
+                    let attempts = 0;
+                    do {
+                        bx = Math.random()*GAME.width; by = Math.random()*GAME.height;
+                        d = Math.hypot(bx-player.x, by-player.y);
+                        attempts++;
+                    } while(d < 800 && attempts < 50);
+                    if(d < 800) { bx = 50; by = 50; }
+                    bots.push(new Bot(bx, by, type));
+                }
+            }
+            GAME.botsAlive = bots.length;
+            updateHUD();
+        }
+
+        function startGame() {
+            document.getElementById('startMenu').classList.add('hidden');
+            GAME.money = 0; GAME.level = 1;
+            GAME.perks = { dmg:1, hpMult:1, luck:1 };
+            GAME.stats = { basic:0, rusher:0, sniper:0, boss:0 };
+            initLevel();
+        }
+
+        function initLevel() {
+            if(loopId) cancelAnimationFrame(loopId);
+            document.getElementById('shopMenu').classList.add('hidden');
+            document.getElementById('perkSection').classList.remove('hidden');
+            document.getElementById('perkMsg').classList.add('hidden');
+            
+            GAME.active = true; GAME.paused = false;
+            generateWorld();
+            loop();
+        }
+
+        function loop(timestamp) {
+            if(!GAME.active) return;
+            if(!GAME.paused) update();
+            draw();
+            drawRadar();
+            loopId = requestAnimationFrame(loop);
+        }
+
+        function onScreen(x, y, r) {
+            return (x + r > GAME.camera.x && x - r < GAME.camera.x + canvas.width &&
+                    y + r > GAME.camera.y && y - r < GAME.camera.y + canvas.height);
+        }
+
+        function update() {
+            if(GAME.shake > 0) GAME.shake *= 0.9;
+            player.update();
+            obstacles.forEach(o => checkWall(player, o));
+            machines.forEach(m => m.update());
+            machines = machines.filter(m => !m.dead);
+
+            if(exitPortal) {
+                exitPortal.update();
+                if(Math.hypot(player.x - exitPortal.x, player.y - exitPortal.y) < 40) {
+                    levelComplete();
+                }
+            }
+
+            bots.forEach(b => { b.update(); obstacles.forEach(o => checkWall(b, o)); });
+            bots = bots.filter(b => { if(b.hp <= 0) { onBotDeath(b); return false; } return true; });
+
+            for(let i=bullets.length-1; i>=0; i--) {
+                let b = bullets[i]; b.x+=b.vx; b.y+=b.vy; b.life--;
+                let hit = false;
+                obstacles.forEach(o => { if(b.x>o.x && b.x<o.x+o.w && b.y>o.y && b.y<o.y+o.h) hit=true; });
+                
+                if(!hit && b.life > 0) {
+                    if(b.player) {
+                        for(let bot of bots) {
+                            if(Math.hypot(b.x-bot.x, b.y-bot.y) < bot.r+5) {
+                                bot.hp -= b.dmg; hit = true; showText(bot.x, bot.y, Math.floor(b.dmg), '#fff'); break;
+                            }
+                        }
+                    } else {
+                        if(Math.hypot(b.x-player.x, b.y-player.y) < player.r+5) {
+                            hit = true; player.takeDamage(b.dmg);
+                        }
+                    }
+                }
+                if(hit || b.life<=0) bullets.splice(i, 1);
+            }
+
+            items.forEach((item, i) => {
+                if(Math.hypot(player.x-item.x, player.y-item.y) < 35) {
+                    applyItem(item); items.splice(i, 1); updateHUD();
+                }
+            });
+
+            texts.forEach((t,i) => { t.y-=1; t.life--; if(t.life<=0) texts.splice(i, 1); });
+
+            const cx = player.x - canvas.width/2; const cy = player.y - canvas.height/2;
+            GAME.camera.x += (cx - GAME.camera.x)*0.1 + (Math.random()-0.5)*GAME.shake;
+            GAME.camera.y += (cy - GAME.camera.y)*0.1 + (Math.random()-0.5)*GAME.shake;
+        }
+
+        function checkWall(ent, obs) {
+            if (ent.x > obs.x && ent.x < obs.x+obs.w && ent.y > obs.y && ent.y < obs.y+obs.h) {
+                if(ent.x < obs.x+10) ent.x = obs.x; else if(ent.x > obs.x+obs.w-10) ent.x = obs.x+obs.w;
+                if(ent.y < obs.y+10) ent.y = obs.y; else if(ent.y > obs.y+obs.h-10) ent.y = obs.y+obs.h;
+            }
+        }
+
+        function onBotDeath(bot) {
+            GAME.botsAlive--; GAME.killStreak++; GAME.money += (bot.type==='boss'?500:50); GAME.stats[bot.type]++;
+            items.push({x:bot.x, y:bot.y, type:'hp'});
+            if(GAME.killStreak >= 3) { GAME.nukeReady=true; updateNuke(); showText(player.x, player.y-50, "NUCLEAR PRONTA!", "red"); }
+            if(GAME.botsAlive <= 0) spawnPortal(bot.x, bot.y);
+            updateHUD();
+        }
+
+        function spawnPortal(x, y) {
+            let px = player.x + 200; let py = player.y;
+            px = Math.max(100, Math.min(GAME.width-100, px));
+            py = Math.max(100, Math.min(GAME.height-100, py));
+            exitPortal = new Portal(px, py);
+            showText(player.x, player.y - 100, "PORTAL ABERTO!", "#b0f");
+        }
+
+        function spawnLootAt(x, y) {
+            const types = ['ammo', 'shield', 'weapon'];
+            const t = types[Math.floor(Math.random()*types.length)];
+            items.push({x:x, y:y, type:t});
+        }
+
+        function applyItem(item) {
+            let txt="", col="#fff";
+            if(item.type==='hp') { player.hp = Math.min(player.maxHp, player.hp+30); txt="VIDA"; col="#0f0"; }
+            else if(item.type==='ammo') { WEAPONS[1].ammo+=40; WEAPONS[2].ammo+=15; txt="MUNIÇÃO"; col="#ff0"; }
+            else if(item.type==='shield') { player.shield=100; txt="ESCUDO"; col="#0af"; }
+            else if(item.type==='weapon') { player.wIdx=2; WEAPONS[2].ammo+=10; txt="SHOTGUN"; col="#f0f"; }
+            showText(player.x, player.y, txt, col);
+        }
+
+        function createExplosion(x, y, dmg) {
+            GAME.shake=20; showText(x, y, "BOOM!", "orange");
+            bots.forEach(b => { if(Math.hypot(b.x-x, b.y-y) < 200) { b.hp-=dmg; showText(b.x, b.y, dmg, '#fff'); } });
+        }
+
+        function useNuke() {
+            if(!GAME.nukeReady) return;
+            GAME.shake=60; bots.forEach(b => { b.hp-=1000; showText(b.x, b.y, "-1000", "red"); });
+            GAME.nukeReady=false; GAME.killStreak=0; updateNuke();
+        }
+
+        function draw() {
+            ctx.fillStyle = '#111'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.save(); ctx.translate(-Math.floor(GAME.camera.x), -Math.floor(GAME.camera.y));
+
+            const theme = Math.floor((GAME.level-1)/5);
+            ctx.fillStyle = theme===3 ? '#210' : '#111'; ctx.fillRect(0,0,GAME.width, GAME.height);
+            
+            ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 2;
+            ctx.beginPath();
+            let startX = Math.floor(GAME.camera.x/200)*200;
+            let startY = Math.floor(GAME.camera.y/200)*200;
+            for(let i=startX; i<startX+canvas.width+200; i+=200) { ctx.moveTo(i,GAME.camera.y); ctx.lineTo(i,GAME.camera.y+canvas.height); }
+            for(let i=startY; i<startY+canvas.height+200; i+=200) { ctx.moveTo(GAME.camera.x,i); ctx.lineTo(GAME.camera.x+canvas.width,i); }
+            ctx.stroke();
+
+            if(exitPortal) exitPortal.draw();
+
+            items.forEach(i => { if(onScreen(i.x, i.y, 20)) {
+                ctx.fillStyle = i.type==='hp'?'#0f0':(i.type==='ammo'?'#ff0':'#00f');
+                ctx.beginPath(); ctx.arc(i.x, i.y, 10, 0, Math.PI*2); ctx.fill();
+            }});
+
+            obstacles.forEach(o => { if(onScreen(o.x+o.w/2, o.y+o.h/2, o.w)) {
+                ctx.fillStyle=o.c || '#333'; ctx.fillRect(o.x,o.y,o.w,o.h); ctx.strokeStyle='#555'; ctx.strokeRect(o.x,o.y,o.w,o.h);
+            }});
+
+            machines.forEach(m => m.draw());
+            bots.forEach(b => b.draw());
+            player.draw();
+            bullets.forEach(b => { if(onScreen(b.x, b.y, 10)) {
+                ctx.fillStyle=b.color; ctx.beginPath(); ctx.arc(b.x,b.y,4,0,Math.PI*2); ctx.fill(); 
+            }});
+            texts.forEach(t => { ctx.fillStyle=t.color; ctx.font="bold 20px Arial"; ctx.fillText(t.text, t.x, t.y); });
+
+            ctx.restore();
+        }
+
+        function drawRadar() {
+            rctx.clearRect(0,0,100,100);
+            const sx = 100/GAME.width; const sy = 100/GAME.height;
+            rctx.fillStyle='red'; bots.forEach(b=>{ rctx.beginPath(); rctx.arc(b.x*sx, b.y*sy, 3, 0, Math.PI*2); rctx.fill(); });
+            rctx.fillStyle='yellow'; items.forEach(i=>{ rctx.fillRect(i.x*sx, i.y*sy, 2, 2); });
+            if(exitPortal) { rctx.fillStyle='#b0f'; if(Math.floor(Date.now()/200)%2===0) rctx.fillRect(exitPortal.x*sx-2, exitPortal.y*sy-2, 4, 4); }
+            rctx.fillStyle='#0f0'; rctx.beginPath(); rctx.arc(player.x*sx, player.y*sy, 4, 0, Math.PI*2); rctx.fill();
+        }
+
+        function updateHUD() {
+            document.getElementById('hpBar').style.width = Math.max(0, (player.hp/player.maxHp)*100) + '%';
+            document.getElementById('shBar').style.width = Math.max(0, player.shield) + '%';
+            document.getElementById('lvlDisp').innerText = `NÍVEL ${GAME.level}`;
+            document.getElementById('moneyDisp').innerText = `$${GAME.money}`;
+            const w = WEAPONS[player.wIdx];
+            document.getElementById('wName').innerText = w.name;
+            document.getElementById('wAmmo').innerText = w.ammo;
+            document.getElementById('q-turret').innerText = GAME.inv.turret;
+            document.getElementById('q-missile').innerText = GAME.inv.missile;
+            document.getElementById('q-grenade').innerText = GAME.inv.grenade;
+        }
+
+        function updateNuke() { document.getElementById('nuke-btn').style.display = GAME.nukeReady ? 'flex' : 'none'; }
+        function showText(x, y, text, color) { texts.push({x, y, text, color, life: 60}); }
+
+        function togglePause() {
+            GAME.paused = !GAME.paused;
+            if(GAME.paused) document.getElementById('pauseMenu').classList.remove('hidden');
+            else document.getElementById('pauseMenu').classList.add('hidden');
+        }
+
+        function levelComplete() {
+            GAME.active = false;
+            document.getElementById('shopMenu').classList.remove('hidden');
+            document.getElementById('shopMoney').innerText = GAME.money;
+            document.getElementById('stat-dmg').innerText = Math.round(GAME.perks.dmg * 100) + "%";
+            document.getElementById('stat-hp').innerText = Math.round(player.maxHp);
+        }
+
+        function nextLevel() { GAME.level++; initLevel(); }
+        
+        function pickPerk(type) {
+            if(type === 'dmg') GAME.perks.dmg += 0.2;
+            if(type === 'hp') GAME.perks.hpMult += 0.25;
+            if(type === 'luck') GAME.perks.luck += 0.5;
+            document.getElementById('perkSection').classList.add('hidden');
+            document.getElementById('perkMsg').classList.remove('hidden');
+        }
+
+        function buyItem(type, cost) {
+            if(GAME.money >= cost) { GAME.money -= cost; GAME.inv[type]++; document.getElementById('shopMoney').innerText = GAME.money; }
+        }
+        function spawnMachine(type) {
+            if(GAME.inv[type] > 0) { GAME.inv[type]--; machines.push(new Machine(player.x, player.y, type)); updateHUD(); }
+        }
+        function gameOver() {
+            GAME.active = false; document.getElementById('deadMenu').classList.remove('hidden');
+            document.getElementById('reportTable').innerHTML = `<tr><td>Grunts</td><td>${GAME.stats.basic}</td></tr><tr><td>Rushers</td><td>${GAME.stats.rusher}</td></tr><tr><td>Snipers</td><td>${GAME.stats.sniper}</td></tr><tr><td>Chefes</td><td>${GAME.stats.boss}</td></tr>`;
+        }
+        function setColor(c, el) { GAME.playerColor = c; document.querySelectorAll('.c-opt').forEach(d => d.classList.remove('selected')); el.classList.add('selected'); }
+
+        // INPUT & CONTROLS
+        function registerJoystick(elmId, type) {
+            const el = document.getElementById(elmId); const knob = el.querySelector('.knob');
+            const rect = el.getBoundingClientRect(); const center = {x: rect.left + rect.width/2, y: rect.top + rect.height/2}; const maxR = rect.width/2;
+            el.addEventListener('touchstart', e => { e.preventDefault(); const t = e.changedTouches[0]; INPUT[type].id = t.identifier; INPUT[type].active = true; updateJoy(t, center, maxR, knob, type); });
+            el.addEventListener('touchmove', e => { e.preventDefault(); for(let i=0; i<e.changedTouches.length; i++) { if(e.changedTouches[i].identifier === INPUT[type].id) updateJoy(e.changedTouches[i], center, maxR, knob, type); } });
+            const end = e => { for(let i=0; i<e.changedTouches.length; i++) { if(e.changedTouches[i].identifier === INPUT[type].id) { INPUT[type].active = false; knob.style.transform = `translate(0,0)`; } } };
+            el.addEventListener('touchend', end); el.addEventListener('touchcancel', end);
+        }
+        function updateJoy(t, center, maxR, knob, type) {
+            let dx = t.clientX - center.x; let dy = t.clientY - center.y; const dist = Math.hypot(dx, dy);
+            if(dist > maxR) { dx = (dx/dist)*maxR; dy = (dy/dist)*maxR; }
+            knob.style.transform = `translate(${dx}px, ${dy}px)`; INPUT[type].x = dx/maxR; INPUT[type].y = dy/maxR;
+        }
+        registerJoystick('joy-move', 'move'); registerJoystick('joy-aim', 'aim');
+        registerJoystick('joy-single', 'single');
+
+        function toggleControls() {
+            const m = document.getElementById('joy-move'); const a = document.getElementById('joy-aim');
+            const s = document.getElementById('joy-single');
+            
+            // Logic for swapping Left/Right Dual Sticks
+            if(!s.classList.contains('hidden')) return; // Don't swap if in single mode
+
+            if(m.classList.contains('j-left')) { m.className='joy-zone j-right'; a.className='joy-zone j-left'; }
+            else { m.className='joy-zone j-left'; a.className='joy-zone j-right'; }
+            document.getElementById('pauseMenu').classList.add('hidden'); GAME.paused = false;
+        }
+
+        function toggleControlMode() {
+            if(GAME.controlMode === 'dual') {
+                GAME.controlMode = 'single';
+                document.getElementById('joy-move').classList.add('hidden');
+                document.getElementById('joy-aim').classList.add('hidden');
+                document.getElementById('joy-single').classList.remove('hidden');
+                document.getElementById('btnMode').innerText = "CONTROLES: ÚNICO";
+                document.getElementById('btnSwap').classList.add('hidden'); // Hide swap button in single mode
+            } else {
+                GAME.controlMode = 'dual';
+                document.getElementById('joy-move').classList.remove('hidden');
+                document.getElementById('joy-aim').classList.remove('hidden');
+                document.getElementById('joy-single').classList.add('hidden');
+                document.getElementById('btnMode').innerText = "CONTROLES: DUPLO";
+                document.getElementById('btnSwap').classList.remove('hidden');
+            }
+        }
+
+        document.getElementById('swapBtn').addEventListener('touchstart', e => { e.preventDefault(); player.wIdx = (player.wIdx+1) % WEAPONS.length; updateHUD(); });
+    </script>
+</body>
+</html>
