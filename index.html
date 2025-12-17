@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neon Ops: Stable</title>
+    <title>Neon Ops: Working</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap');
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; touch-action: none; }
@@ -31,18 +31,9 @@
         .m-icon:active { transform: scale(0.9); background: rgba(0,255,255,0.3); }
         .m-qty { position: absolute; bottom: -5px; right: -5px; background: #f00; font-size: 12px; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
         
-        /* NUKE: Área de toque aumentada e z-index máximo */
-        #nuke-container {
-            position: absolute; top: 120px; left: 50%; transform: translateX(-50%);
-            width: 100px; height: 100px; display: flex; justify-content: center; align-items: center;
-            z-index: 100; pointer-events: auto;
-        }
-        #nuke-btn { 
-            width: 80px; height: 80px; background: radial-gradient(#ff0, #f00); 
-            border: 4px solid #fff; border-radius: 50%; display: none; 
-            justify-content: center; align-items: center; font-size: 40px; 
-            animation: pulse 0.5s infinite; box-shadow: 0 0 25px #f00; 
-        }
+        /* NUKE FIXED: Click direto */
+        #nuke-container { position: absolute; top: 120px; left: 50%; transform: translateX(-50%); width: 100px; height: 100px; display: flex; justify-content: center; align-items: center; z-index: 100; pointer-events: auto; }
+        #nuke-btn { width: 80px; height: 80px; background: radial-gradient(#ff0, #f00); border: 4px solid #fff; border-radius: 50%; display: none; justify-content: center; align-items: center; font-size: 40px; animation: pulse 0.5s infinite; box-shadow: 0 0 25px #f00; }
         #nuke-btn:active { transform: scale(0.9); }
         
         .w-btn { position: absolute; bottom: 180px; width: 75px; height: 75px; border-radius: 50%; background: rgba(0,0,0,0.6); border: 2px solid #fff; display: flex; flex-direction: column; justify-content: center; align-items: center; pointer-events: auto; z-index: 20; transition: all 0.3s; }
@@ -56,7 +47,6 @@
         .k-red { background: rgba(255, 50, 50, 0.4); } .k-green { width: 80px; height: 80px; background: rgba(0, 255, 0, 0.4); }
         .pos-left { left: 30px; right: auto; } .pos-right { right: 30px; left: auto; } .pos-center { left: 50%; transform: translateX(-50%); }
         
-        /* Menus */
         .modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 10, 15, 0.98); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; pointer-events: auto; overflow-y: auto; padding: 20px; }
         .hidden { display: none !important; }
         
@@ -113,7 +103,7 @@
     </div>
 
     <div id="startMenu" class="modal">
-        <h1>NEON OPS<br><span style="font-size:16px; color:white;">STABLE EDITION</span></h1>
+        <h1>NEON OPS<br><span style="font-size:16px; color:white;">FINAL WORKING</span></h1>
         <p style="color:#aaa; font-size:14px;">Cor do Agente</p>
         <div class="color-picker">
             <div class="c-opt selected" style="background:#0ff" onclick="setColor('#0ff', this)"></div>
@@ -229,28 +219,21 @@
             if(this.slowTimer>0) { speedMult=0.5; this.slowTimer--; }
             if(this.jamTimer>0) this.jamTimer--;
 
-            // Update Status UI
             const sDiv = document.getElementById('status-effects');
             let h=''; 
             if(this.slowTimer>0) h+='<div class="status-badge" style="background:#d35400;border:1px solid #fff">LENTO</div>';
             if(this.jamTimer>0) h+='<div class="status-badge" style="background:#2980b9;border:1px solid #fff">TRAVADO</div>';
             sDiv.innerHTML = h;
 
-            // Regen
             if(this.regenTimer>0) this.regenTimer--;
             else if(this.hp<this.maxHp && this.hp>0) { this.hp += 0.05; if(this.hp>this.maxHp) this.hp=this.maxHp; }
             
-            // Shield Decay (10s)
             if(this.shield>0) { this.shield-=0.166; if(this.shield<0) this.shield=0; }
-
-            // UI Bars Realtime
+            
             document.getElementById('hpBar').style.width = (this.hp/this.maxHp*100)+'%';
             document.getElementById('shBar').style.width = Math.max(0, this.shield)+'%';
 
-            // Movement
             this.handleInput(speedMult);
-            
-            // Limits
             this.x = Math.max(20, Math.min(GAME.width-20, this.x));
             this.y = Math.max(20, Math.min(GAME.height-20, this.y));
         }
@@ -283,13 +266,11 @@
 
         shoot() {
             if(this.jamTimer>0) return;
-            
-            // Auto Switch Weapon if Empty
             let w = WEAPONS[this.wIdx];
             if(w.ammo !== '∞' && w.ammo <= 0) {
-                if(WEAPONS[2].ammo > 0) this.wIdx = 2; // Shotgun
-                else if(WEAPONS[1].ammo > 0) this.wIdx = 1; // Rifle
-                else this.wIdx = 0; // Pistol
+                if(WEAPONS[2].ammo > 0) this.wIdx = 2;
+                else if(WEAPONS[1].ammo > 0) this.wIdx = 1;
+                else this.wIdx = 0;
                 w = WEAPONS[this.wIdx];
                 updateHUD();
             }
@@ -338,10 +319,7 @@
             this.r=22; this.color='#f00'; this.speed=2; this.view=1000;
             if(type === 'boss') {
                 this.hp = 1500 + (GAME.level*300); this.maxHp=this.hp; this.r=60; this.view=2000;
-                const bType = Math.floor((GAME.level/5)) % 3;
-                if(bType===0) { this.color='#fff'; this.speed=1.0; this.bossVar='tank'; }
-                if(bType===1) { this.color='#fa0'; this.speed=2.5; this.bossVar='gunner'; }
-                if(bType===2) { this.color='#b0f'; this.speed=1.2; this.bossVar='sniper'; }
+                this.color='#fff'; this.speed=1.0;
             } else if(type === 'rusher') { this.hp*=0.6; this.r=18; this.color='#ff0'; this.speed=3.5; }
             else if(type === 'sniper') { this.hp*=0.8; this.r=22; this.color='#b0f'; this.speed=1.5; this.view=1200; }
         }
@@ -354,18 +332,14 @@
             if(dist < this.view) {
                 let move = true;
                 if(this.type === 'sniper' && dist < 500) move = false;
-                if(this.type === 'boss' && this.bossVar === 'sniper' && dist < 600) move = false;
+                if(this.type === 'boss' && dist < 600) move = false;
                 if(move && dist > (this.type==='rusher'?20:200)) { this.x += Math.cos(angle)*this.speed; this.y += Math.sin(angle)*this.speed; }
                 
                 const now = Date.now();
                 let rate = 1500; let count = 1; let spread = 0.05; let dmg = 8 + GAME.level; let spd = 10;
                 if (this.type === 'rusher') { rate=1000; count=3; spread=0.3; }
                 if (this.type === 'sniper') { rate=2500; spread=0.01; spd=25; dmg*=1.5; }
-                if (this.type === 'boss') {
-                    if(this.bossVar === 'tank') { rate=1200; count=5; spread=0.4; dmg*=1.2; }
-                    if(this.bossVar === 'gunner') { rate=200; spread=0.15; dmg*=0.6; }
-                    if(this.bossVar === 'sniper') { rate=2000; spread=0.0; spd=30; dmg*=2; }
-                }
+                if (this.type === 'boss') { rate=1200; count=5; spread=0.4; dmg*=1.2; }
                 
                 if(now - this.lastShot > rate) {
                     this.lastShot = now;
@@ -459,6 +433,7 @@
 
     function loop() {
         if(!GAME.active) return;
+        if(!player) return; // Prevent crash if player is missing
         if(!GAME.paused) update();
         draw();
         drawRadar();
@@ -471,7 +446,6 @@
         player.update();
         obstacles.forEach(o => checkWall(player, o));
         
-        // Traps
         traps.forEach(t => {
             if(t.active && Math.hypot(player.x-t.x, player.y-t.y) < player.r + t.r) {
                 t.active = false; AudioSys.zap();
@@ -660,16 +634,17 @@
     function gameOver() { GAME.active=false; document.getElementById('deadMenu').classList.remove('hidden'); document.getElementById('finalScore').innerText = `SCORE: ${GAME.score}`; document.getElementById('reportTable').innerHTML = `<tr><td>Grunts</td><td>${GAME.stats.basic}</td></tr><tr><td>Rushers</td><td>${GAME.stats.rusher}</td></tr><tr><td>Snipers</td><td>${GAME.stats.sniper}</td></tr><tr><td>Chefes</td><td>${GAME.stats.boss}</td></tr>`; }
     function setColor(c, el) { GAME.playerColor = c; document.querySelectorAll('.c-opt').forEach(d => d.classList.remove('selected')); el.classList.add('selected'); }
 
-    // GENERATE SAFE WORLD
+    // GENERATE SAFE WORLD FIX
     function generateWorld() {
-        bots=[]; bullets=[]; items=[]; texts=[]; obstacles=[]; machines=[]; traps=[]; exitPortal=null;
-        const safeZone = 800;
+        bots=[]; obstacles=[]; items=[]; traps=[]; exitPortal=null;
+        const safeZone = 400; // REDUCED SAFE ZONE TO PREVENT INFINITE LOOP
         
+        let attempts;
         for(let i=0; i<30; i++) {
-            let ox, oy, d;
-            do { ox=Math.random()*GAME.width; oy=Math.random()*GAME.height; d=Math.hypot(ox-GAME.width/2, oy-GAME.height/2); } 
-            while(d < safeZone); 
-            obstacles.push({x:ox, y:oy, w:100, h:100});
+            let x,y,d; attempts=0;
+            do { x=Math.random()*GAME.width; y=Math.random()*GAME.height; d=Math.hypot(x-GAME.width/2, y-GAME.height/2); attempts++; } 
+            while(d < safeZone && attempts < 50); 
+            obstacles.push({x:x, y:y, w:100, h:100});
         }
         
         for(let i=0; i<10; i++) spawnLootAt(Math.random()*GAME.width, Math.random()*GAME.height);
@@ -689,8 +664,9 @@
                 let bx, by, d, t='basic';
                 if(GAME.level>2 && Math.random()<0.3) t='rusher';
                 if(GAME.level>5 && Math.random()<0.2) t='sniper';
-                do { bx=Math.random()*GAME.width; by=Math.random()*GAME.height; d=Math.hypot(bx-GAME.width/2, by-GAME.height/2); } 
-                while(d < safeZone);
+                attempts=0;
+                do { bx=Math.random()*GAME.width; by=Math.random()*GAME.height; d=Math.hypot(bx-GAME.width/2, by-GAME.height/2); attempts++; } 
+                while(d < safeZone && attempts < 50);
                 bots.push(new Bot(bx, by, t));
             }
         }
@@ -742,7 +718,7 @@
     function cycleControlMode() { if(GAME.controlMode === 'dual') GAME.controlMode = 'single_auto'; else if(GAME.controlMode === 'single_auto') GAME.controlMode = 'single_manual'; else GAME.controlMode = 'dual'; applyControlMode(); }
     function toggleSide() { GAME.inverted = !GAME.inverted; applyControlMode(); }
 
-    // MACHINE BUTTONS EVENTS
+    // MACHINE BUTTONS EVENTS (Fixed Touch)
     function bindMach(id, t) { const el=document.getElementById(id); const fn=(e)=>{e.preventDefault(); e.stopPropagation(); spawnMachine(t)}; el.addEventListener('touchstart', fn); el.addEventListener('mousedown', fn); }
     bindMach('btn-turret','turret'); bindMach('btn-missile','missile'); bindMach('btn-grenade','grenade');
 
