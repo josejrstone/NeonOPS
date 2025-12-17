@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neon Ops: Definitive</title>
+    <title>Neon Ops: Bulletproof</title>
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap');
@@ -71,6 +71,7 @@
 </head>
 <body>
     <canvas id="gameCanvas"></canvas>
+    
     <div id="ui-layer">
         <div class="top-bar">
             <div style="display:flex; align-items:center;">
@@ -95,11 +96,11 @@
     </div>
 
     <div id="startMenu" class="modal">
-        <h1>NEON OPS<br><span style="font-size:16px; color:white;">DEFINITIVE</span></h1>
+        <h1>NEON OPS<br><span style="font-size:16px; color:white;">BULLETPROOF</span></h1>
         
-        <div id="modeSelect" style="text-align:center;">
+        <div id="mainButtons" style="text-align:center;">
             <div style="border: 1px solid #444; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
-                <button class="btn btn-green" onclick="initSolo()">JOGAR SOZINHO</button>
+                <button class="btn btn-green" onclick="initSolo()">JOGAR SOLO</button>
             </div>
             <div class="lobby-box">
                 <h3 style="color:#f0f; margin-bottom:10px;">MULTIPLAYER</h3>
@@ -114,18 +115,18 @@
                 <button class="btn btn-shop" style="width:250px; font-size:14px;" id="btnSwapStart" onclick="toggleSide()">LADO: PADRÃO</button>
             </div>
         </div>
+    </div>
 
-        <div id="lobbyWait" class="hidden" style="text-align:center;">
-            <h2>SALA DE ESPERA</h2>
-            <div style="background:#222; padding:15px; border-radius:10px;">
-                <p style="color:#aaa;">CÓDIGO DA SALA</p>
-                <h2 id="roomCodeDisplay" style="color:#0f0; margin:10px 0;">...</h2>
-                <button class="btn btn-shop" style="width:auto;" onclick="copyRoomCode()">COPIAR</button>
-            </div>
-            <div class="lobby-box" id="playerList"></div>
-            <button id="btnStartMulti" class="btn btn-green hidden" onclick="startMultiGame()">INICIAR MISSÃO</button>
-            <button class="btn btn-red" onclick="location.reload()">VOLTAR</button>
+    <div id="lobbyWait" class="modal hidden">
+        <h1>SALA DE ESPERA</h1>
+        <div style="background:#222; padding:15px; border-radius:10px; text-align:center;">
+            <p style="color:#aaa;">CÓDIGO DA SALA</p>
+            <h2 id="roomCodeDisplay" style="color:#0f0; margin:10px 0; user-select: text;">...</h2>
+            <button class="btn btn-shop" style="width:auto;" onclick="copyRoomCode()">COPIAR</button>
         </div>
+        <div class="lobby-box" id="playerList"></div>
+        <button id="btnStartMulti" class="btn btn-green hidden" onclick="startMultiGame()">INICIAR MISSÃO</button>
+        <button class="btn btn-red" onclick="location.reload()">VOLTAR</button>
     </div>
 
     <div id="pauseMenu" class="modal hidden">
@@ -163,7 +164,7 @@
     <div id="deadMenu" class="modal hidden">
         <h1 style="color:red">GAME OVER</h1>
         <h2 id="finalScore">SCORE: 0</h2>
-        <p id="specMsg" class="hidden" style="color:#aaa;">Você caiu. Aguardando sobreviventes...</p>
+        <p id="specMsg" class="hidden" style="color:#aaa; margin-bottom:20px;">Você caiu. Aguardando sobreviventes...</p>
         <button id="btnExit" class="btn" onclick="returnToMenu()">MENU PRINCIPAL</button>
     </div>
 
@@ -183,20 +184,19 @@
     window.addEventListener('resize', resize);
     resize();
 
-    // --- AUDIO ---
-    const AudioSys = {
-        ctx: null,
-        init: function() { if(!this.ctx) this.ctx=new(window.AudioContext||window.webkitAudioContext)(); },
-        play: function(freq, type, dur, vol=0.1) {
-            if(!this.ctx) return;
-            try { const o=this.ctx.createOscillator(), g=this.ctx.createGain(); o.type=type; o.frequency.setValueAtTime(freq,this.ctx.currentTime); g.gain.setValueAtTime(vol,this.ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.01,this.ctx.currentTime+dur); o.connect(g); g.connect(this.ctx.destination); o.start(); o.stop(this.ctx.currentTime+dur); } catch(e){}
-        }
-    };
-
     // --- GLOBALS ---
     const PEER = { id: null, conn: [], isHost: false, instance: null };
     const COLORS = ['#0ff', '#0f0', '#b0f', '#ff0'];
-    const GAME = { active: false, paused: false, level: 1, width: 2500, height: 2500, camera: {x:0, y:0}, shake:0, money:0, score: 0, perks: { dmg:1, hpMult:1, luck:1 }, inv: { turret:0, missile:0, grenade:0 }, killStreak: 0, nukeReady: false, botsAlive: 0, myId: null, stats: { basic:0, rusher:0, sniper:0, boss:0 }, controlMode: 'dual', inverted: false };
+    const GAME = {
+        active: false, paused: false, level: 1, width: 2500, height: 2500,
+        camera: {x:0, y:0}, shake:0, money:0, score: 0,
+        perks: { dmg:1, hpMult:1, luck:1 },
+        inv: { turret:0, missile:0, grenade:0 },
+        killStreak: 0, nukeReady: false, botsAlive: 0,
+        myId: null,
+        stats: { basic:0, rusher:0, sniper:0, boss:0 },
+        controlMode: 'dual', inverted: false
+    };
     const INPUT = { move: {x:0,y:0,active:false,id:null}, aim: {x:0,y:0,active:false,id:null}, single: {x:0,y:0,active:false,id:null}, manualFire: false };
     const WEAPONS = [
         { id:0, name:'PISTOLA', dmg:25, rate:400, speed:15, spread:0.05, count:1, ammo:'∞', max:Infinity, color:'#fff' },
@@ -204,9 +204,18 @@
         { id:2, name:'SHOTGUN', dmg:12, rate:900, speed:18, spread:0.3, count:6, ammo:30, max:30, color:'#ff0' }
     ];
 
-    let players = {}; 
-    let bots=[], bullets=[], items=[], obstacles=[], machines=[], traps=[], texts=[];
-    let exitPortal = null;
+    // --- AUDIO ---
+    const AudioSys = {
+        ctx: null,
+        init: function() { if(!this.ctx) this.ctx=new(window.AudioContext||window.webkitAudioContext)(); },
+        play: function(freq, type, dur, vol=0.1) {
+            if(!this.ctx) return;
+            try { const o=this.ctx.createOscillator(), g=this.ctx.createGain(); o.type=type; o.frequency.setValueAtTime(freq,this.ctx.currentTime); g.gain.setValueAtTime(vol,this.ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.01,this.ctx.currentTime+dur); o.connect(g); g.connect(this.ctx.destination); o.start(); o.stop(this.ctx.currentTime+dur); } catch(e){}
+        },
+        shoot: function(wId) { this.init(); if(wId===0) this.play(600,'triangle',0.1); else if(wId===1) this.play(300,'square',0.15); else this.play(100,'sawtooth',0.2); },
+        pickup: function() { this.init(); this.play(800,'sine',0.2); },
+        zap: function() { this.init(); this.play(150,'sawtooth',0.3); }
+    };
 
     // --- CLASSES ---
     class Player {
@@ -250,67 +259,81 @@
         }
     }
 
-    // --- LOGIC ---
+    // --- GAME DATA ---
+    let players = {}; 
+    let bots=[], bullets=[], items=[], obstacles=[], machines=[], traps=[], texts=[];
+    let exitPortal = null;
+
+    // --- CORE LOGIC ---
     function initSolo() {
-        console.log("Solo Start");
-        GAME.myId = 'host'; PEER.isHost = true;
-        players = {}; players['host'] = new Player('host', 0, 0, COLORS[0]);
+        // MODO OFFLINE GARANTIDO
+        console.log("Iniciando Modo Solo Local");
+        GAME.myId = 'host'; 
+        PEER.isHost = true;
+        // Limpa e recria jogador
+        players = {}; 
+        players['host'] = new Player('host', GAME.width/2, GAME.height/2, COLORS[0]);
         startGame();
     }
 
     function createRoom() {
-        if(typeof Peer === 'undefined') return alert("Erro de Rede.");
-        const id = "NEON-" + Math.floor(Math.random()*9999);
-        PEER.isHost = true; GAME.myId = 'host';
-        PEER.instance = new Peer(id);
-        PEER.instance.on('open', id => {
-            document.getElementById('modeSelect').classList.add('hidden');
-            document.getElementById('lobbyWait').classList.remove('hidden');
-            document.getElementById('roomCodeDisplay').innerText = id;
-            document.getElementById('btnStartMulti').classList.remove('hidden');
-            players={}; players['host'] = new Player('host',0,0,COLORS[0]);
-            updateLobbyList();
-        });
-        PEER.instance.on('connection', conn => {
-            PEER.conn.push(conn);
-            conn.on('open', () => {
-                const pid = conn.peer; const col = COLORS[PEER.conn.length % 4];
-                players[pid] = new Player(pid,0,0,col);
+        try {
+            const id = "NEON-" + Math.floor(Math.random()*9999);
+            PEER.isHost = true; GAME.myId = 'host';
+            PEER.instance = new Peer(id);
+            PEER.instance.on('open', id => {
+                document.getElementById('modeSelect').style.display = 'none'; // Hide buttons inside
+                document.getElementById('lobbyWait').classList.remove('hidden');
+                document.getElementById('roomCodeDisplay').innerText = id;
+                document.getElementById('btnStartMulti').classList.remove('hidden');
+                players={}; players['host'] = new Player('host',0,0,COLORS[0]);
                 updateLobbyList();
-                conn.send({type:'init', id:pid, color:col});
             });
-            conn.on('data', data => handlePacket(data, conn.peer));
-        });
+            PEER.instance.on('connection', conn => {
+                PEER.conn.push(conn);
+                conn.on('open', () => {
+                    const pid = conn.peer; const col = COLORS[PEER.conn.length % 4];
+                    players[pid] = new Player(pid,0,0,col);
+                    updateLobbyList();
+                    conn.send({type:'init', id:pid, color:col});
+                });
+                conn.on('data', data => handlePacket(data, conn.peer));
+            });
+            PEER.instance.on('error', err => alert("Erro PeerJS: "+err));
+        } catch(e) { alert("Não foi possível criar a sala. Verifique sua conexão."); }
     }
 
     function joinRoom() {
         const code = document.getElementById('joinCode').value.trim().toUpperCase();
         if(!code) return alert("Digite o código!");
-        const myId = "P-" + Math.floor(Math.random()*9999);
-        PEER.instance = new Peer(myId);
-        PEER.instance.on('open', id => {
-            const conn = PEER.instance.connect(code);
-            PEER.conn = [conn]; PEER.isHost = false;
-            conn.on('open', () => {
-                document.getElementById('modeSelect').classList.add('hidden');
-                document.getElementById('lobbyWait').classList.remove('hidden');
-                document.getElementById('roomCodeDisplay').innerText = code;
-                document.getElementById('lobbyMsg').innerText = "Conectado!";
-                document.getElementById('btnStartMulti').classList.add('hidden');
+        try {
+            const myId = "P-" + Math.floor(Math.random()*9999);
+            PEER.instance = new Peer(myId);
+            PEER.instance.on('open', id => {
+                const conn = PEER.instance.connect(code);
+                PEER.conn = [conn]; PEER.isHost = false;
+                conn.on('open', () => {
+                    document.getElementById('modeSelect').style.display = 'none';
+                    document.getElementById('lobbyWait').classList.remove('hidden');
+                    document.getElementById('roomCodeDisplay').innerText = code;
+                    document.getElementById('lobbyMsg').innerText = "Conectado!";
+                    document.getElementById('btnStartMulti').classList.add('hidden');
+                });
+                conn.on('data', data => handlePacket(data));
+                conn.on('error', err => alert("Erro na conexão: "+err));
             });
-            conn.on('data', data => handlePacket(data));
-        });
+        } catch(e) { alert("Erro ao conectar."); }
     }
 
     function handlePacket(data, sender) {
-        if(!PEER.isHost) {
+        if(!PEER.isHost) { // CLIENTE
             if(data.type==='init') { GAME.myId=data.id; document.getElementById('lobbyMsg').innerText="Pronto!"; }
             if(data.type==='start') startGame();
             if(data.type==='update') syncState(data.payload);
             if(data.type==='levelComplete') { levelComplete(); document.getElementById('shopContent').classList.add('hidden'); document.getElementById('waitText').classList.remove('hidden'); }
             if(data.type==='nextLevel') nextLevel();
             if(data.type==='gameover') gameOver();
-        } else {
+        } else { // HOST
             if(data.type==='input' && players[sender]) applyRemoteInput(players[sender], data.input);
         }
     }
@@ -346,8 +369,11 @@
 
     function loop() {
         if(!GAME.active) return;
-        // Check if player exists to avoid crash
-        if (!players[GAME.myId]) return; 
+        // SEGURANÇA: Se o player não existir, recria (fallback para solo)
+        if(!players[GAME.myId]) {
+            if(PEER.isHost) players[GAME.myId] = new Player(GAME.myId, GAME.width/2, GAME.height/2, COLORS[0]);
+            else return; // Cliente espera dados
+        }
 
         if(!GAME.paused) update();
         draw();
@@ -401,7 +427,7 @@
             obstacles.forEach(o=>{ if(b.x>o.x && b.x<o.x+o.w && b.y>o.y && b.y<o.y+o.h) hit=true; });
             if(!hit) {
                 if(b.player) {
-                    for(let bot of bots) { if(Math.hypot(b.x-bot.x, b.y-bot.y)<bot.r+5) { bot.hp-=b.dmg; hit=true; AudioSys.play(100,'sawtooth',0.05); break; } }
+                    for(let bot of bots) { if(Math.hypot(b.x-bot.x, b.y-bot.y)<bot.r+5) { bot.hp-=b.dmg; hit=true; AudioSys.play(100,'sawtooth',0.05); if(bot.hp<=0) onBotDeath(bot); break; } }
                 } else {
                     Object.values(players).forEach(p=>{ if(!p.dead && Math.hypot(b.x-p.x, b.y-p.y)<p.r+5) { p.takeDamage(b.dmg); hit=true; } });
                 }
@@ -444,10 +470,11 @@
     }
 
     function handleLocalInput(p) {
+        let moving = false;
         if(GAME.controlMode.includes('single')) {
-            if(INPUT.single.active) { p.x+=INPUT.single.x*4; p.y+=INPUT.single.y*4; p.angle=Math.atan2(INPUT.single.y, INPUT.single.x); }
+            if(INPUT.single.active) { p.x+=INPUT.single.x*4; p.y+=INPUT.single.y*4; p.angle=Math.atan2(INPUT.single.y, INPUT.single.x); moving=true; }
             let t=getNearest(p,500);
-            if((GAME.controlMode==='single_auto' && t && INPUT.single.active) || (GAME.controlMode==='single_manual' && INPUT.manualFire)) {
+            if((GAME.controlMode==='single_auto' && t && moving) || (GAME.controlMode==='single_manual' && INPUT.manualFire)) {
                 if(t) p.angle=Math.atan2(t.y-p.y, t.x-p.x);
                 shoot(p);
             }
@@ -473,10 +500,15 @@
             if(w.ammo!=='∞' && w.ammo<=0) return;
             if(w.ammo!=='∞') w.ammo--;
             p.lastShot=Date.now();
-            if(p.id===GAME.myId) { AudioSys.play(600,'triangle',0.1); updateHUD(); }
+            if(p.id===GAME.myId) { GAME.shake = 4; updateHUD(); }
+            AudioSys.shoot(p.wIdx);
             for(let i=0;i<w.count;i++) {
                 const s = (Math.random()-0.5)*w.spread;
-                bullets.push({x:p.x, y:p.y, vx:Math.cos(p.angle+s)*15, vy:Math.sin(p.angle+s)*15, dmg:25, color:p.color, player:true, life:60});
+                bullets.push({
+                    x: p.x + Math.cos(p.angle)*25, y: p.y + Math.sin(p.angle)*25,
+                    vx: Math.cos(p.angle+s)*w.speed, vy: Math.sin(p.angle+s)*w.speed,
+                    dmg: w.dmg * GAME.perks.dmg, color: p.color, player: true, life: 80
+                });
             }
         }
     }
@@ -514,7 +546,30 @@
     function levelComplete() { GAME.active=false; document.getElementById('shopMenu').classList.remove('hidden'); if(PEER.isHost) document.getElementById('btnNextLevel').classList.remove('hidden'); else { document.getElementById('btnNextLevel').classList.add('hidden'); document.getElementById('waitText').classList.remove('hidden'); } }
     function nextLevel() { GAME.level++; if(PEER.isHost) { broadcast({type:'nextLevel'}); initLevel(); } }
     function pickPerk(t) { if(t==='dmg')GAME.perks.dmg+=0.2; if(t==='hp')GAME.perks.hpMult+=0.2; document.getElementById('perkSection').classList.add('hidden'); document.getElementById('perkMsg').classList.remove('hidden'); }
+    function buyItem(t,c) { if(GAME.money>=c) { GAME.money-=c; GAME.inv[t]++; updateHUD(); } }
+    function spawnMachine(t) { if(GAME.inv[t]>0) { GAME.inv[t]--; machines.push(new Machine(players[GAME.myId].x, players[GAME.myId].y, t)); updateHUD(); } }
+    function broadcast(msg) { PEER.conn.forEach(c => c.send(msg)); }
     function drawRadar() { rctx.clearRect(0,0,100,100); rctx.fillStyle='red'; bots.forEach(b=>{rctx.fillRect(b.x/25,b.y/25,2,2)}); rctx.fillStyle='#0f0'; Object.values(players).forEach(p=>{if(!p.dead)rctx.fillRect(p.x/25,p.y/25,3,3)}); }
+    function draw() {
+        ctx.fillStyle='#111'; ctx.fillRect(0,0,canvas.width,canvas.height);
+        ctx.save(); ctx.translate(-GAME.camera.x,-GAME.camera.y);
+        ctx.strokeStyle='rgba(255,255,255,0.1)'; ctx.beginPath(); 
+        for(let i=0; i<GAME.width; i+=200) { ctx.moveTo(i,0); ctx.lineTo(i,GAME.height); }
+        for(let i=0; i<GAME.height; i+=200) { ctx.moveTo(0,i); ctx.lineTo(GAME.width,i); }
+        ctx.stroke();
+        
+        if(exitPortal) { ctx.save(); ctx.translate(exitPortal.x,exitPortal.y); ctx.rotate(exitPortal.a); ctx.strokeStyle='#b0f'; ctx.strokeRect(-20,-20,40,40); ctx.restore(); }
+        obstacles.forEach(o=>{ if(onScreen(o.x,o.y,100)) { ctx.fillStyle='#333'; ctx.fillRect(o.x,o.y,o.w,o.h); ctx.strokeStyle='#555'; ctx.strokeRect(o.x,o.y,o.w,o.h); }});
+        items.forEach(i=>{ ctx.fillStyle=i.type==='hp'?'#0f0':'#00f'; ctx.beginPath(); ctx.arc(i.x,i.y,10,0,Math.PI*2); ctx.fill(); });
+        traps.forEach(t=>{ if(t.active) { ctx.fillStyle='#500'; ctx.beginPath(); ctx.arc(t.x,t.y,20,0,Math.PI*2); ctx.fill(); ctx.stroke(); } });
+        bots.forEach(b=>{ if(onScreen(b.x,b.y,30)) { ctx.fillStyle=b.color; ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fill(); }});
+        Object.values(players).forEach(p=>p.draw());
+        bullets.forEach(b=>{ ctx.fillStyle=b.color; ctx.beginPath(); ctx.arc(b.x,b.y,4,0,Math.PI*2); ctx.fill(); });
+        texts.forEach(t=>{ ctx.fillStyle=t.color; ctx.font="20px Arial"; ctx.fillText(t.text,t.x,t.y); });
+        ctx.restore();
+    }
+
+    // --- CONTROLS UI ---
     function registerJoy(id, type) {
         const el = document.getElementById(id);
         el.addEventListener('touchstart', e=>{ e.preventDefault(); INPUT[type].active=true; INPUT[type].id=e.changedTouches[0].identifier; moveJoy(e.changedTouches[0], el, type); });
@@ -530,26 +585,32 @@
         INPUT[type].x=dx/mr; INPUT[type].y=dy/mr;
     }
     registerJoy('joy-move','move'); registerJoy('joy-aim','aim'); registerJoy('joy-single','single');
+    
     function applyUI() {
         const m1=document.getElementById('joy-move'), m2=document.getElementById('joy-aim'), m3=document.getElementById('joy-single'), bf=document.getElementById('fire-btn'), wb=document.getElementById('swapBtn');
         m1.className='joy-zone hidden'; m2.className='joy-zone hidden'; m3.className='joy-zone hidden'; bf.className='hidden';
         if(GAME.controlMode==='dual') { m1.className=GAME.inverted?'joy-zone pos-right':'joy-zone pos-left'; m2.className=GAME.inverted?'joy-zone pos-left':'joy-zone pos-right'; wb.style.right=GAME.inverted?'auto':'20px'; wb.style.left=GAME.inverted?'20px':'auto'; }
         else if(GAME.controlMode==='single_auto') { m3.className='joy-zone pos-center'; wb.style.right=GAME.inverted?'auto':'20px'; wb.style.left=GAME.inverted?'20px':'auto'; }
         else { m3.className=GAME.inverted?'joy-zone pos-right':'joy-zone pos-left'; bf.className=''; bf.style.right=GAME.inverted?'auto':'40px'; bf.style.left=GAME.inverted?'40px':'auto'; wb.style.left=GAME.inverted?'auto':'20px'; wb.style.right=GAME.inverted?'20px':'auto'; }
+        
         let txt = GAME.controlMode==='dual'?"DUPLO":(GAME.controlMode==='single_auto'?"ÚNICO (AUTO)":"ÚNICO (MANUAL)");
         document.getElementById('btnModeStart').innerText = "CONTROLE: "+txt; document.getElementById('btnModePause').innerText = "CONTROLE: "+txt;
         document.getElementById('btnSwapStart').innerText = GAME.inverted?"LADO: INVERTIDO":"LADO: PADRÃO"; document.getElementById('btnSwapPause').innerText = GAME.inverted?"LADO: INVERTIDO":"LADO: PADRÃO";
     }
-    function cycleControlMode() { if(GAME.controlMode==='dual') GAME.controlMode='single_auto'; else if(GAME.controlMode==='single_auto') GAME.controlMode='single_manual'; else GAME.controlMode='dual'; applyUI(); }
+    function cycleControlMode() {
+        if(GAME.controlMode==='dual') GAME.controlMode='single_auto'; else if(GAME.controlMode==='single_auto') GAME.controlMode='single_manual'; else GAME.controlMode='dual';
+        applyUI();
+    }
     function toggleSide() { GAME.inverted=!GAME.inverted; applyUI(); }
-    function togglePause() { GAME.paused=!GAME.paused; document.getElementById('pauseMenu').classList.toggle('hidden', !GAME.paused); }
+    function togglePause() { GAME.paused=!GAME.paused; document.getElementById('pauseMenu').classList.toggle('hidden', !GAME.paused); applyUI(); }
     function returnToMenu() { location.reload(); }
     function useNuke(e) { if(e) e.preventDefault(); if(GAME.nukeReady) { GAME.nukeReady=false; document.getElementById('nuke-btn').style.display='none'; bots.forEach(b=>b.hp-=1000); AudioSys.play(50,'sawtooth',1); } }
     function copyRoomCode() { navigator.clipboard.writeText(document.getElementById('roomCodeDisplay').innerText); alert("Copiado!"); }
-    document.getElementById('swapBtn').addEventListener('touchstart', e=>{ e.preventDefault(); if(players[GAME.myId]) players[GAME.myId].wIdx=(players[GAME.myId].wIdx+1)%WEAPONS.length; updateHUD(); });
+    
+    document.getElementById('swapBtn').addEventListener('touchstart', e=>{ e.preventDefault(); if(players[GAME.myId]) { players[GAME.myId].wIdx=(players[GAME.myId].wIdx+1)%WEAPONS.length; updateHUD(); } });
     document.getElementById('fire-btn').addEventListener('touchstart', e=>{e.preventDefault(); INPUT.manualFire=true;});
     document.getElementById('fire-btn').addEventListener('touchend', e=>{e.preventDefault(); INPUT.manualFire=false;});
-    function broadcast(msg) { PEER.conn.forEach(c => c.send(msg)); }
+    
     applyUI();
 </script>
 </body>
