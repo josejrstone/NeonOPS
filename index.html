@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neon Ops: Reforged</title>
+    <title>Neon Ops: Final</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap');
 
@@ -19,7 +19,6 @@
         .bars { display: flex; flex-direction: column; gap: 4px; pointer-events: none; }
         .bar-bg { width: 150px; height: 14px; background: #222; border: 1px solid #555; transform: skewX(-15deg); }
         .hp-fill { width: 100%; height: 100%; background: #f00; transition: width 0.1s linear; } 
-        /* Barra de escudo sem transição para resposta instantânea */
         .sh-fill { width: 0%; height: 100%; background: #00aaff; box-shadow: 0 0 10px #00aaff; }
         
         .info { text-align: right; text-shadow: 1px 1px 2px black; pointer-events: none; }
@@ -29,7 +28,7 @@
 
         /* Status Effects */
         #status-effects {
-            position: absolute; top: 70px; left: 50%; transform: translateX(-50%);
+            position: absolute; top: 60px; left: 50%; transform: translateX(-50%);
             display: flex; gap: 10px; pointer-events: none;
         }
         .status-badge {
@@ -42,7 +41,7 @@
         /* Botão Pause */
         #pause-btn {
             background: rgba(0,0,0,0.5); border: 2px solid #fff; color: white;
-            width: 45px; height: 45px; border-radius: 8px; font-weight: bold; font-size: 20px;
+            width: 40px; height: 40px; border-radius: 5px; font-weight: bold;
             display: flex; justify-content: center; align-items: center; cursor: pointer;
             pointer-events: auto; margin-left: 10px;
         }
@@ -57,26 +56,27 @@
         }
         #radar-canvas { width: 100%; height: 100%; }
 
-        /* Máquinas - IDs adicionados para touch */
+        /* Máquinas */
         .machines { 
             position: absolute; right: 15px; top: 90px; 
             display: flex; flex-direction: column; gap: 15px; pointer-events: auto; 
         }
-        .m-icon { width: 55px; height: 55px; background: rgba(0,0,0,0.7); border: 2px solid #0ff; border-radius: 8px; display: flex; justify-content: center; align-items: center; font-size: 24px; position: relative; }
+        .m-icon { width: 55px; height: 55px; background: rgba(0,0,0,0.7); border: 2px solid #0ff; border-radius: 8px; display: flex; justify-content: center; align-items: center; font-size: 24px; position: relative; margin-bottom: 8px; }
         .m-icon:active { transform: scale(0.9); background: rgba(0,255,255,0.3); }
         .m-qty { position: absolute; bottom: -5px; right: -5px; background: #f00; font-size: 12px; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
 
-        /* Botão Nuclear - Container para facilitar toque */
+        /* Botão Nuclear - Z-Index Alto para funcionar sempre */
         #nuke-container {
             position: absolute; top: 120px; left: 50%; transform: translateX(-50%);
-            width: 100px; height: 100px; display: flex; justify-content: center; align-items: center;
-            z-index: 100; pointer-events: auto;
+            width: 100px; height: 100px; z-index: 100; pointer-events: auto;
+            display: flex; justify-content: center; align-items: center;
         }
         #nuke-btn {
             width: 80px; height: 80px; background: radial-gradient(#ff0, #f00);
-            border: 4px solid #fff; border-radius: 50%; display: none; justify-content: center; align-items: center;
-            font-size: 40px; pointer-events: auto; animation: pulse 0.5s infinite;
-            box-shadow: 0 0 25px #f00;
+            border: 4px solid #fff; border-radius: 50%; display: none; 
+            justify-content: center; align-items: center;
+            font-size: 40px; animation: pulse 0.5s infinite;
+            box-shadow: 0 0 25px #f00; cursor: pointer;
         }
         #nuke-btn:active { transform: scale(0.9); }
 
@@ -131,7 +131,7 @@
         .btn {
             background: linear-gradient(45deg, #00aaff, #0055ff); border: none; padding: 12px 25px;
             color: white; font-family: 'Rajdhani'; font-size: 18px; font-weight: bold;
-            margin: 8px; border-radius: 5px; min-width: 260px; cursor: pointer;
+            margin: 8px; border-radius: 5px; min-width: 250px; cursor: pointer;
         }
         .btn:active { transform: scale(0.95); }
         .btn-green { background: linear-gradient(45deg, #00aa00, #00ff00); color: black; }
@@ -177,7 +177,7 @@
         <div id="status-effects"></div>
         <div id="radar"><canvas id="radar-canvas"></canvas></div>
         
-        <div id="nuke-container">
+        <div id="nuke-container" ontouchstart="useNuke(event)" onmousedown="useNuke(event)">
             <div id="nuke-btn">☢️</div>
         </div>
 
@@ -200,7 +200,7 @@
     </div>
 
     <div id="startMenu" class="modal">
-        <h1>NEON OPS<br><span style="font-size:16px; color:white;">REFORGED</span></h1>
+        <h1>NEON OPS<br><span style="font-size:16px; color:white;">FINAL</span></h1>
         
         <p style="color:#aaa; font-size:14px;">Cor do Agente</p>
         <div class="color-picker">
@@ -281,14 +281,12 @@
             init: function() { if(!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
             playTone: function(freq, type, dur, vol = 0.1) {
                 if(!this.ctx) return;
-                try {
-                    const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
-                    osc.type = type; osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-                    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + dur);
-                    osc.connect(gain); gain.connect(this.ctx.destination);
-                    osc.start(); osc.stop(this.ctx.currentTime + dur);
-                } catch(e){}
+                const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+                osc.type = type; osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + dur);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(); osc.stop(this.ctx.currentTime + dur);
             },
             shoot: function(wId) {
                 this.init();
@@ -379,13 +377,13 @@
                     if(this.hp > this.maxHp) this.hp = this.maxHp;
                 }
                 
-                // SHIELD DECAY LOGIC
+                // SHIELD DECAY
                 if(this.shield > 0) {
-                    this.shield -= 0.166; // 10 seconds (100 / 600 frames)
+                    this.shield -= 0.166; 
                     if(this.shield < 0) this.shield = 0;
                 }
                 
-                // Update Bars
+                // Realtime UI
                 document.getElementById('hpBar').style.width = (this.hp/this.maxHp*100) + '%';
                 document.getElementById('shBar').style.width = Math.max(0, this.shield) + '%';
             }
@@ -401,22 +399,21 @@
             shoot() {
                 if(this.jamTimer > 0) return;
                 
-                // AUTO SWITCH LOGIC (IF EMPTY)
+                // AUTO SWITCH IF EMPTY
                 let w = WEAPONS[this.wIdx];
                 if (w.ammo !== '∞' && w.ammo <= 0) {
-                    // Try switch
                     if(WEAPONS[2].ammo > 0) this.wIdx = 2; // Shotgun
                     else if(WEAPONS[1].ammo > 0) this.wIdx = 1; // Rifle
                     else this.wIdx = 0; // Pistol
-                    w = WEAPONS[this.wIdx]; // Update ref
+                    w = WEAPONS[this.wIdx];
                     updateHUD();
                 }
 
                 if(Date.now()-this.lastShot > w.rate) {
-                    if(w.ammo!=='∞' && w.ammo <= 0) return; // Cant shoot if empty and no switch avail
+                    if(w.ammo !== '∞' && w.ammo <= 0) return; // Prevent shooting if empty
                     
-                    if(w.ammo!=='∞') w.ammo--;
-                    this.lastShot=Date.now();
+                    if(w.ammo !== '∞') w.ammo--;
+                    this.lastShot = now = Date.now();
                     GAME.shake = 4; updateHUD();
                     AudioSys.shoot(this.wIdx);
                     for(let i=0; i<w.count; i++) {
@@ -437,7 +434,7 @@
                     return;
                 }
                 this.hp -= amt; this.regenTimer = 300; 
-                GAME.killStreak = 0; updateNuke(); GAME.shake = 10;
+                GAME.killStreak = 0; updateNuke(); GAME.shake = 10; updateHUD();
                 if(this.hp <= 0) gameOver();
             }
             draw() {
@@ -479,7 +476,10 @@
                     let move = true;
                     if (this.type === 'sniper' && dist < 500) move = false;
                     if (this.type === 'boss' && this.bossVar === 'sniper' && dist < 600) move = false;
-                    if (move && dist > (this.type==='rusher'?20:200)) { this.x += Math.cos(angle)*this.speed; this.y += Math.sin(angle)*this.speed; }
+                    
+                    if (move && dist > (this.type==='rusher'?20:200)) {
+                        this.x += Math.cos(angle)*this.speed; this.y += Math.sin(angle)*this.speed;
+                    }
                     
                     const now = Date.now();
                     let rate = 1500;
@@ -492,11 +492,15 @@
                         if(this.bossVar === 'gunner') { rate=200; spread=0.15; dmg*=0.6; }
                         if(this.bossVar === 'sniper') { rate=2000; spread=0.0; spd=30; dmg*=2; }
                     }
+                    
                     if(now - this.lastShot > rate) {
                         this.lastShot = now;
                         for(let i=0; i<count; i++) {
                             const s = (Math.random()-0.5)*spread;
-                            bullets.push({x:this.x, y:this.y, vx:Math.cos(angle+s)*spd, vy:Math.sin(angle+s)*spd, dmg:dmg, color:'#f55', player:false, life:100});
+                            bullets.push({
+                                x:this.x, y:this.y, vx:Math.cos(angle+s)*spd, vy:Math.sin(angle+s)*spd,
+                                dmg:dmg, color:'#f55', player:false, life:100
+                            });
                         }
                     }
                 }
@@ -563,38 +567,43 @@
         function generateWorld() {
             bots=[]; bullets=[]; items=[]; texts=[]; obstacles=[]; machines=[]; traps=[]; exitPortal = null;
             
-            // Safe zone radius (prevent spawn kill)
-            const safeZone = 800;
-
-            for(let i=0; i<30; i++) {
-                let ox, oy, d;
-                do { ox=Math.random()*GAME.width; oy=Math.random()*GAME.height; d=Math.hypot(ox-GAME.width/2, oy-GAME.height/2); } 
-                while(d < safeZone); 
-                obstacles.push({x:ox, y:oy, w:100, h:100});
-            }
-            
-            for(let i=0; i<10; i++) spawnLootAt(Math.random()*GAME.width, Math.random()*GAME.height);
-            
-            for(let i=0; i<5+Math.floor(GAME.level/2); i++) {
-                traps.push(new Trap(Math.random()*GAME.width, Math.random()*GAME.height, Math.random()<0.33?'damage':(Math.random()<0.5?'slow':'jam')));
-            }
-
-            const count = Math.max(1, Math.floor(GAME.level * 0.8));
             const isBoss = GAME.level % 5 === 0;
-            
+            const centerSafe = 800; // SPAWN PROTECTION
+
+            if(!isBoss) {
+                for(let i=0; i<30; i++) {
+                    let ox, oy, d;
+                    // Proteção de spawn para obstáculos
+                    do { ox=Math.random()*GAME.width; oy=Math.random()*GAME.height; d=Math.hypot(ox-GAME.width/2, oy-GAME.height/2); } 
+                    while(d < centerSafe); 
+                    obstacles.push({x:ox, y:oy, w:100, h:100});
+                }
+                
+                let trapCount = 5 + Math.floor(GAME.level); 
+                for(let i=0; i<trapCount; i++) {
+                    let type = Math.random()<0.33 ? 'damage' : (Math.random()<0.5?'slow':'jam');
+                    traps.push(new Trap(Math.random()*GAME.width, Math.random()*GAME.height, type));
+                }
+            }
+
+            for(let i=0; i<10 + (GAME.perks.luck*2); i++) spawnLootAt(Math.random()*GAME.width, Math.random()*GAME.height);
+
+            player = new Player(GAME.width/2, GAME.height/2);
+
             if(isBoss) {
                 bots.push(new Bot(100, 100, 'boss'));
-                showText(GAME.width/2, GAME.height/2, "BOSS!", "red");
+                showText(player.x, player.y-100, "CHEFÃO DETECTADO", "red");
             } else {
+                const count = Math.max(1, Math.floor(GAME.level * 0.8));
                 for(let i=0; i<count; i++) {
                     let type = 'basic';
                     if (GAME.level > 2 && Math.random()<0.3) type = 'rusher';
                     if (GAME.level > 5 && Math.random()<0.2) type = 'sniper';
                     let bx, by, d, att=0;
-                    // Spawn logic safely away
-                    do { bx=Math.random()*GAME.width; by=Math.random()*GAME.height; d=Math.hypot(bx-GAME.width/2, by-GAME.height/2); att++; } 
-                    while(d < safeZone && att < 50);
-                    if(d < safeZone) { bx=50; by=50; } // Fallback
+                    // Proteção de Spawn para Bots
+                    do { bx=Math.random()*GAME.width; by=Math.random()*GAME.height; d=Math.hypot(bx-player.x, by-player.y); att++; } 
+                    while(d < centerSafe && att<100);
+                    if(d < centerSafe) { bx=100; by=100; } // Fallback longe
                     bots.push(new Bot(bx, by, type));
                 }
             }
@@ -617,19 +626,12 @@
             document.getElementById('perkSection').classList.remove('hidden');
             document.getElementById('perkMsg').classList.add('hidden');
             document.getElementById('btnNextLevel').classList.add('hidden');
-            
-            generateWorld();
-            
-            // Spawn player safely in center
-            player = new Player(GAME.width/2, GAME.height/2);
-            GAME.camera.x = player.x - canvas.width/2;
-            GAME.camera.y = player.y - canvas.height/2;
-
             GAME.active = true; GAME.paused = false;
+            generateWorld();
             loop();
         }
 
-        function loop() {
+        function loop(timestamp) {
             if(!GAME.active) return;
             if(!GAME.paused) update();
             draw();
@@ -645,15 +647,15 @@
         function update() {
             if(GAME.shake > 0) GAME.shake *= 0.9;
             
-            // TRAPS FIX: One-time trigger
             traps.forEach(t => {
                 if(t.active && Math.hypot(player.x-t.x, player.y-t.y) < player.r + t.r) {
                     t.active = false; 
                     AudioSys.zap();
-                    // NO SCORE PENALTY
+                    
                     if(t.type === 'damage') { player.takeDamage(20); showText(player.x, player.y, "MINA!", "red"); }
                     if(t.type === 'slow') { player.slowTimer = 180; showText(player.x, player.y, "LENTO!", "#d35400"); }
                     if(t.type === 'jam') { player.jamTimer = 180; showText(player.x, player.y, "TRAVADO!", "#2980b9"); }
+                    updateHUD();
                 }
             });
             traps = traps.filter(t => t.active); 
@@ -745,7 +747,7 @@
             let txt="", col="#fff";
             if(item.type==='hp') { player.hp = Math.min(player.maxHp, player.hp+30); txt="VIDA"; col="#0f0"; }
             else if(item.type==='ammo') { 
-                // AMMO PICKUP FIX: DONT SWITCH WEAPON
+                // AMMO PICKUP: Just refill, don't switch
                 WEAPONS[1].ammo = Math.min(WEAPONS[1].max, WEAPONS[1].ammo + 40); 
                 WEAPONS[2].ammo = Math.min(WEAPONS[2].max, WEAPONS[2].ammo + 15); 
                 txt="MUNIÇÃO"; col="#ff0"; 
@@ -760,7 +762,7 @@
             bots.forEach(b => { if(Math.hypot(b.x-x, b.y-y) < 200) { b.hp-=dmg; showText(b.x, b.y, dmg, '#fff'); } });
         }
 
-        // NUKE LOGIC: CALLED VIA TOUCHSTART
+        // NUKE LOGIC: Using global function for HTML events
         function useNuke(e) {
             if(e) { e.preventDefault(); e.stopPropagation(); }
             if(!GAME.nukeReady) return;
@@ -769,7 +771,7 @@
             AudioSys.shoot(2);
         }
 
-        // MACHINE LOGIC: CALLED VIA TOUCHSTART
+        // MACHINES LOGIC: Bound in JS later
         function spawnMachine(type) {
             if(GAME.inv[type] > 0) { GAME.inv[type]--; machines.push(new Machine(player.x, player.y, type)); updateHUD(); }
         }
@@ -837,6 +839,7 @@
         }
 
         function updateNuke() { document.getElementById('nuke-btn').style.display = GAME.nukeReady ? 'flex' : 'none'; }
+        function getNearestTarget(r) { let t=null,m=r; bots.forEach(b=>{let d=Math.hypot(b.x-player.x, b.y-player.y); if(d<m){m=d;t=b;}}); return t; }
         function showText(x, y, text, color) { texts.push({x, y, text, color, life: 60}); }
 
         function togglePause() {
@@ -948,15 +951,13 @@
 
         function toggleSide() { GAME.inverted = !GAME.inverted; applyControlMode(); }
 
-        // BIND TOUCH EVENTS TO MACHINES
-        function bindMachineBtn(id, type) {
+        // BIND MACHINE TOUCH EVENTS MANUALLY
+        function bindMach(id, t) {
             const el = document.getElementById(id);
-            const fn = (e) => { e.preventDefault(); e.stopPropagation(); spawnMachine(type); };
+            const fn = (e) => { e.preventDefault(); e.stopPropagation(); spawnMachine(t); };
             el.addEventListener('touchstart', fn); el.addEventListener('mousedown', fn);
         }
-        bindMachineBtn('btn-turret', 'turret');
-        bindMachineBtn('btn-missile', 'missile');
-        bindMachineBtn('btn-grenade', 'grenade');
+        bindMach('btn-turret', 'turret'); bindMach('btn-missile', 'missile'); bindMach('btn-grenade', 'grenade');
 
         document.getElementById('swapBtn').addEventListener('touchstart', e => { e.preventDefault(); player.wIdx = (player.wIdx+1) % WEAPONS.length; updateHUD(); });
         document.getElementById('fire-btn').addEventListener('touchstart', e => { e.preventDefault(); INPUT.manualFire = true; });
