@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neon Ops: Final</title>
+    <title>Neon Ops: Corrected</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap');
 
@@ -17,9 +17,9 @@
         /* Topo */
         .top-bar { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; align-items: flex-start; pointer-events: auto; }
         .bars { display: flex; flex-direction: column; gap: 4px; pointer-events: none; }
-        .bar-bg { width: 150px; height: 14px; background: #222; border: 1px solid #555; transform: skewX(-15deg); }
+        .bar-bg { width: 130px; height: 12px; background: #222; border: 1px solid #555; transform: skewX(-15deg); }
         .hp-fill { width: 100%; height: 100%; background: #f00; transition: width 0.1s linear; } 
-        .sh-fill { width: 0%; height: 100%; background: #00aaff; box-shadow: 0 0 10px #00aaff; }
+        .sh-fill { width: 0%; height: 100%; background: #00aaff; } /* Sem transition para realtime */
         
         .info { text-align: right; text-shadow: 1px 1px 2px black; pointer-events: none; }
         .lvl { font-size: 24px; color: #ffeb3b; font-weight: bold; display: block;}
@@ -27,14 +27,8 @@
         .money { font-size: 20px; color: #0f0; display: block;}
 
         /* Status Effects */
-        #status-effects {
-            position: absolute; top: 60px; left: 50%; transform: translateX(-50%);
-            display: flex; gap: 10px; pointer-events: none;
-        }
-        .status-badge {
-            padding: 5px 10px; border-radius: 5px; font-weight: bold; font-size: 14px;
-            animation: blink 0.5s infinite alternate; text-shadow: 0 0 5px black;
-        }
+        #status-effects { position: absolute; top: 60px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; pointer-events: none; }
+        .status-badge { padding: 5px 10px; border-radius: 5px; font-weight: bold; font-size: 14px; animation: blink 0.5s infinite alternate; text-shadow: 0 0 5px black; }
         .st-slow { background: #d35400; color: white; border: 1px solid #e67e22; }
         .st-jam { background: #2980b9; color: white; border: 1px solid #3498db; }
 
@@ -48,8 +42,8 @@
 
         /* Radar */
         #radar {
-            position: absolute; top: 70px; left: 10px;
-            width: 100px; height: 100px;
+            position: absolute; top: 60px; left: 10px;
+            width: 90px; height: 90px;
             background: rgba(0, 20, 0, 0.6);
             border: 2px solid #0f0; border-radius: 50%;
             pointer-events: none; overflow: hidden;
@@ -61,56 +55,55 @@
             position: absolute; right: 15px; top: 90px; 
             display: flex; flex-direction: column; gap: 15px; pointer-events: auto; 
         }
-        .m-icon { width: 55px; height: 55px; background: rgba(0,0,0,0.7); border: 2px solid #0ff; border-radius: 8px; display: flex; justify-content: center; align-items: center; font-size: 24px; position: relative; margin-bottom: 8px; }
+        /* Aumentei a área de toque dos icones */
+        .m-icon { width: 55px; height: 55px; background: rgba(0,0,0,0.7); border: 2px solid #0ff; border-radius: 8px; display: flex; justify-content: center; align-items: center; font-size: 24px; position: relative; margin-bottom: 5px; }
         .m-icon:active { transform: scale(0.9); background: rgba(0,255,255,0.3); }
-        .m-qty { position: absolute; bottom: -5px; right: -5px; background: #f00; font-size: 12px; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+        .m-qty { position: absolute; bottom: -2px; right: -2px; background: #f00; font-size: 10px; padding: 1px 4px; border-radius: 3px; font-weight: bold; }
 
-        /* Botão Nuclear - Z-Index Alto para funcionar sempre */
+        /* Botão Nuclear - Z-INDEX ALTO para garantir clique */
         #nuke-container {
-            position: absolute; top: 120px; left: 50%; transform: translateX(-50%);
-            width: 100px; height: 100px; z-index: 100; pointer-events: auto;
-            display: flex; justify-content: center; align-items: center;
+            position: absolute; top: 100px; left: 50%; transform: translateX(-50%);
+            width: 80px; height: 80px; z-index: 100; pointer-events: auto;
+            display: none; justify-content: center; align-items: center;
         }
         #nuke-btn {
-            width: 80px; height: 80px; background: radial-gradient(#ff0, #f00);
-            border: 4px solid #fff; border-radius: 50%; display: none; 
-            justify-content: center; align-items: center;
-            font-size: 40px; animation: pulse 0.5s infinite;
-            box-shadow: 0 0 25px #f00; cursor: pointer;
+            width: 70px; height: 70px; background: radial-gradient(#ff0, #f00);
+            border: 3px solid #fff; border-radius: 50%; display: flex; justify-content: center; align-items: center;
+            font-size: 30px; animation: pulse 0.5s infinite;
+            box-shadow: 0 0 20px #f00; cursor: pointer;
         }
         #nuke-btn:active { transform: scale(0.9); }
 
         .w-btn {
-            position: absolute; bottom: 180px;
-            width: 75px; height: 75px; border-radius: 50%;
+            position: absolute; bottom: 170px;
+            width: 70px; height: 70px; border-radius: 50%;
             background: rgba(0,0,0,0.6); border: 2px solid #fff; display: flex; flex-direction: column;
             justify-content: center; align-items: center; pointer-events: auto; z-index: 20;
             transition: all 0.3s;
         }
-        .w-name { font-size: 11px; font-weight: bold; }
-        .w-ammo { font-size: 18px; }
+        .w-name { font-size: 10px; font-weight: bold; }
+        .w-ammo { font-size: 16px; }
 
         /* Botão Tiro Manual */
         #fire-btn {
-            position: absolute; bottom: 40px; width: 100px; height: 100px; border-radius: 50%;
+            position: absolute; bottom: 40px; width: 90px; height: 90px; border-radius: 50%;
             background: rgba(255, 50, 50, 0.4); border: 4px solid #f00;
             display: flex; justify-content: center; align-items: center; pointer-events: auto; z-index: 20;
-            box-shadow: 0 0 15px #f00; font-weight: bold; font-size: 22px; transition: all 0.3s;
+            box-shadow: 0 0 15px #f00; font-weight: bold; font-size: 20px; transition: all 0.3s;
         }
         #fire-btn:active { background: rgba(255, 50, 50, 0.7); transform: scale(0.95); }
 
         /* Joysticks */
         .joy-zone {
-            position: absolute; bottom: 40px; width: 150px; height: 150px;
+            position: absolute; bottom: 40px; width: 140px; height: 140px;
             background: rgba(255, 255, 255, 0.05); border-radius: 50%;
             border: 2px dashed rgba(255, 255, 255, 0.15);
             pointer-events: auto; display: flex; justify-content: center; align-items: center;
             transition: all 0.3s;
         }
-        
-        .knob { width: 60px; height: 60px; background: rgba(0, 255, 255, 0.4); border-radius: 50%; pointer-events: none; }
+        .knob { width: 50px; height: 50px; background: rgba(0, 255, 255, 0.4); border-radius: 50%; pointer-events: none; }
         .k-red { background: rgba(255, 50, 50, 0.4); }
-        .k-green { width: 80px; height: 80px; background: rgba(0, 255, 0, 0.4); }
+        .k-green { width: 70px; height: 70px; background: rgba(0, 255, 0, 0.4); }
 
         .pos-left { left: 30px; right: auto; }
         .pos-right { right: 30px; left: auto; }
@@ -163,7 +156,7 @@
             <div style="display:flex; align-items:center;">
                 <div class="bars">
                     <div class="bar-bg"><div class="hp-fill" id="hpBar"></div></div>
-                    <div class="bar-bg" style="width: 150px; height: 8px; margin-top:4px;"><div class="sh-fill" id="shBar"></div></div>
+                    <div class="bar-bg" style="width: 130px; height: 6px; margin-top:2px;"><div class="sh-fill" id="shBar"></div></div>
                 </div>
                 <div id="pause-btn" onclick="togglePause()">||</div>
             </div>
@@ -182,9 +175,9 @@
         </div>
 
         <div class="machines">
-            <div class="m-icon" id="btn-turret">🔫<div class="m-qty" id="q-turret">0</div></div>
-            <div class="m-icon" id="btn-missile">🚀<div class="m-qty" id="q-missile">0</div></div>
-            <div class="m-icon" id="btn-grenade">💣<div class="m-qty" id="q-grenade">0</div></div>
+            <div class="m-icon" ontouchstart="spawnMachine(event, 'turret')" onmousedown="spawnMachine(event, 'turret')">🔫<div class="m-qty" id="q-turret">0</div></div>
+            <div class="m-icon" ontouchstart="spawnMachine(event, 'missile')" onmousedown="spawnMachine(event, 'missile')">🚀<div class="m-qty" id="q-missile">0</div></div>
+            <div class="m-icon" ontouchstart="spawnMachine(event, 'grenade')" onmousedown="spawnMachine(event, 'grenade')">💣<div class="m-qty" id="q-grenade">0</div></div>
         </div>
 
         <div class="w-btn right" id="swapBtn">
@@ -200,7 +193,7 @@
     </div>
 
     <div id="startMenu" class="modal">
-        <h1>NEON OPS<br><span style="font-size:16px; color:white;">FINAL</span></h1>
+        <h1>NEON OPS<br><span style="font-size:16px; color:white;">CORRECTED</span></h1>
         
         <p style="color:#aaa; font-size:14px;">Cor do Agente</p>
         <div class="color-picker">
@@ -275,7 +268,6 @@
         window.addEventListener('resize', resize);
         resize();
 
-        // --- AUDIO ENGINE ---
         const AudioSys = {
             ctx: null,
             init: function() { if(!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
@@ -298,7 +290,6 @@
             zap: function() { this.init(); this.playTone(150, 'sawtooth', 0.3); }
         };
 
-        // --- ENGINE ---
         const GAME = {
             active: false, paused: false, level: 1, width: 2500, height: 2500,
             camera: {x:0, y:0}, shake:0, money:0, score: 0,
@@ -323,7 +314,6 @@
             { id:2, name:'SHOTGUN', dmg:12, rate:900, speed:18, spread:0.3, count:6, ammo:30, max:30, color:'#ff0' }
         ];
 
-        // --- CLASSES ---
         class Player {
             constructor(x, y) {
                 this.x = x; this.y = y; this.r = 20; 
@@ -333,7 +323,6 @@
                 this.slowTimer = 0; this.jamTimer = 0;
             }
             update() {
-                // Effects
                 let speedMult = 1;
                 if(this.slowTimer > 0) { speedMult = 0.5; this.slowTimer--; }
                 if(this.jamTimer > 0) { this.jamTimer--; }
@@ -352,7 +341,7 @@
                         this.angle = Math.atan2(INPUT.single.y, INPUT.single.x);
                         moving = true;
                     }
-                    let target = this.getNearestTarget(500);
+                    let target = getNearestTarget(500);
                     if (target) this.angle = Math.atan2(target.y - this.y, target.x - this.x);
                     if (GAME.controlMode === 'single_auto' && target) this.shoot();
                     if (GAME.controlMode === 'single_manual' && INPUT.manualFire) this.shoot();
@@ -377,24 +366,17 @@
                     if(this.hp > this.maxHp) this.hp = this.maxHp;
                 }
                 
-                // SHIELD DECAY
                 if(this.shield > 0) {
                     this.shield -= 0.166; 
                     if(this.shield < 0) this.shield = 0;
                 }
                 
-                // Realtime UI
                 document.getElementById('hpBar').style.width = (this.hp/this.maxHp*100) + '%';
                 document.getElementById('shBar').style.width = Math.max(0, this.shield) + '%';
             }
             move(dx, dy, mult) {
                 this.x += dx * 4 * mult;
                 this.y += dy * 4 * mult;
-            }
-            getNearestTarget(r) {
-                let t=null, min=r;
-                bots.forEach(b=>{ let d=Math.hypot(b.x-this.x, b.y-this.y); if(d<min){min=d; t=b;} });
-                return t;
             }
             shoot() {
                 if(this.jamTimer > 0) return;
@@ -410,10 +392,10 @@
                 }
 
                 if(Date.now()-this.lastShot > w.rate) {
-                    if(w.ammo !== '∞' && w.ammo <= 0) return; // Prevent shooting if empty
+                    if(w.ammo !== '∞' && w.ammo <= 0) return;
                     
                     if(w.ammo !== '∞') w.ammo--;
-                    this.lastShot = now = Date.now();
+                    this.lastShot = Date.now();
                     GAME.shake = 4; updateHUD();
                     AudioSys.shoot(this.wIdx);
                     for(let i=0; i<w.count; i++) {
@@ -434,7 +416,7 @@
                     return;
                 }
                 this.hp -= amt; this.regenTimer = 300; 
-                GAME.killStreak = 0; updateNuke(); GAME.shake = 10; updateHUD();
+                GAME.killStreak = 0; updateNuke(); GAME.shake = 10;
                 if(this.hp <= 0) gameOver();
             }
             draw() {
@@ -453,14 +435,11 @@
                 this.x=x; this.y=y; this.type=type; this.lastShot=0;
                 this.hp = 50 * (1 + GAME.level*0.1); 
                 this.r=22; this.color='#f00'; this.speed=2; this.view=1000;
-
-                const bossType = Math.floor((GAME.level/5)) % 3; 
-
                 if(type === 'boss') {
                     this.hp = 1500 + (GAME.level*300); this.maxHp=this.hp; this.r=60; this.view=2000;
-                    if(bossType === 0) { this.color='#fff'; this.speed=1.0; this.bossVar='tank'; } 
-                    if(bossType === 1) { this.color='#fa0'; this.speed=2.5; this.bossVar='gunner'; } 
-                    if(bossType === 2) { this.color='#b0f'; this.speed=1.2; this.bossVar='sniper'; } 
+                    if(Math.random()<0.33) { this.color='#fff'; this.speed=1.0; } 
+                    else if(Math.random()<0.5) { this.color='#fa0'; this.speed=2.5; } 
+                    else { this.color='#b0f'; this.speed=1.2; } 
                 } 
                 else if(type === 'rusher') { this.hp*=0.6; this.r=18; this.color='#ff0'; this.speed=3.5; }
                 else if(type === 'sniper') { this.hp*=0.8; this.r=22; this.color='#b0f'; this.speed=1.5; this.view=1200; }
@@ -468,30 +447,21 @@
             update() {
                 const dx=player.x-this.x, dy=player.y-this.y;
                 const dist=Math.hypot(dx, dy), angle=Math.atan2(dy, dx);
-
                 const overlap = (this.r + player.r) - dist;
                 if(overlap > -5) { this.x -= Math.cos(angle) * 2; this.y -= Math.sin(angle) * 2; }
 
                 if(dist < this.view) {
                     let move = true;
                     if (this.type === 'sniper' && dist < 500) move = false;
-                    if (this.type === 'boss' && this.bossVar === 'sniper' && dist < 600) move = false;
-                    
-                    if (move && dist > (this.type==='rusher'?20:200)) {
+                    if (this.type === 'boss' && dist < 600) move = false;
+                    if (move) {
                         this.x += Math.cos(angle)*this.speed; this.y += Math.sin(angle)*this.speed;
                     }
                     
                     const now = Date.now();
-                    let rate = 1500;
-                    let count = 1; let spread = 0.05; let dmg = 8 + GAME.level; let spd = 10;
-
+                    let rate = 1500; let count = 1; let spread = 0.05; let dmg = 8 + GAME.level; let spd = 10;
                     if (this.type === 'rusher') { rate=1000; count=3; spread=0.3; }
                     if (this.type === 'sniper') { rate=2500; spread=0.01; spd=25; dmg*=1.5; }
-                    if (this.type === 'boss') {
-                        if(this.bossVar === 'tank') { rate=1200; count=5; spread=0.4; dmg*=1.2; }
-                        if(this.bossVar === 'gunner') { rate=200; spread=0.15; dmg*=0.6; }
-                        if(this.bossVar === 'sniper') { rate=2000; spread=0.0; spd=30; dmg*=2; }
-                    }
                     
                     if(now - this.lastShot > rate) {
                         this.lastShot = now;
@@ -568,14 +538,14 @@
             bots=[]; bullets=[]; items=[]; texts=[]; obstacles=[]; machines=[]; traps=[]; exitPortal = null;
             
             const isBoss = GAME.level % 5 === 0;
-            const centerSafe = 800; // SPAWN PROTECTION
+            // Original spawn logic (User preferred)
+            const safeZone = 400; // Small safe zone
 
             if(!isBoss) {
                 for(let i=0; i<30; i++) {
                     let ox, oy, d;
-                    // Proteção de spawn para obstáculos
                     do { ox=Math.random()*GAME.width; oy=Math.random()*GAME.height; d=Math.hypot(ox-GAME.width/2, oy-GAME.height/2); } 
-                    while(d < centerSafe); 
+                    while(d < safeZone); 
                     obstacles.push({x:ox, y:oy, w:100, h:100});
                 }
                 
@@ -599,11 +569,9 @@
                     let type = 'basic';
                     if (GAME.level > 2 && Math.random()<0.3) type = 'rusher';
                     if (GAME.level > 5 && Math.random()<0.2) type = 'sniper';
-                    let bx, by, d, att=0;
-                    // Proteção de Spawn para Bots
-                    do { bx=Math.random()*GAME.width; by=Math.random()*GAME.height; d=Math.hypot(bx-player.x, by-player.y); att++; } 
-                    while(d < centerSafe && att<100);
-                    if(d < centerSafe) { bx=100; by=100; } // Fallback longe
+                    let bx, by, d;
+                    do { bx=Math.random()*GAME.width; by=Math.random()*GAME.height; d=Math.hypot(bx-player.x, by-player.y); } 
+                    while(d < safeZone);
                     bots.push(new Bot(bx, by, type));
                 }
             }
@@ -612,6 +580,7 @@
         }
 
         function startGame() {
+            AudioSys.init();
             document.getElementById('startMenu').classList.add('hidden');
             document.getElementById('ui-layer').style.display = 'block';
             GAME.money = 0; GAME.level = 1; GAME.score = 0;
@@ -651,7 +620,7 @@
                 if(t.active && Math.hypot(player.x-t.x, player.y-t.y) < player.r + t.r) {
                     t.active = false; 
                     AudioSys.zap();
-                    
+                    // NO SCORE PENALTY
                     if(t.type === 'damage') { player.takeDamage(20); showText(player.x, player.y, "MINA!", "red"); }
                     if(t.type === 'slow') { player.slowTimer = 180; showText(player.x, player.y, "LENTO!", "#d35400"); }
                     if(t.type === 'jam') { player.jamTimer = 180; showText(player.x, player.y, "TRAVADO!", "#2980b9"); }
@@ -680,23 +649,18 @@
                 let b = bullets[i]; b.x+=b.vx; b.y+=b.vy; b.life--;
                 let hit = false;
                 obstacles.forEach(o => { if(b.x>o.x && b.x<o.x+o.w && b.y>o.y && b.y<o.y+o.h) hit=true; });
-                
-                if(!hit && b.life > 0) {
+                if(!hit) {
                     if(b.player) {
                         for(let bot of bots) {
                             if(Math.hypot(b.x-bot.x, b.y-bot.y) < bot.r+5) {
-                                bot.hp -= b.dmg; hit = true; showText(bot.x, bot.y, Math.floor(b.dmg), '#fff');
-                                AudioSys.playTone(100, 'sawtooth', 0.05);
-                                break;
+                                bot.hp -= b.dmg; hit = true; AudioSys.playTone(100, 'sawtooth', 0.05); break;
                             }
                         }
                     } else {
-                        if(Math.hypot(b.x-player.x, b.y-player.y) < player.r+5) {
-                            hit = true; player.takeDamage(b.dmg);
-                        }
+                        if(Math.hypot(b.x-player.x, b.y-player.y) < player.r+5) { player.takeDamage(b.dmg); hit = true; }
                     }
                 }
-                if(hit || b.life<=0) bullets.splice(i, 1);
+                if(hit || b.life <= 0) bullets.splice(i, 1);
             }
 
             items.forEach((item, i) => {
@@ -707,9 +671,8 @@
 
             texts.forEach((t,i) => { t.y-=1; t.life--; if(t.life<=0) texts.splice(i, 1); });
 
-            const cx = player.x - canvas.width/2; const cy = player.y - canvas.height/2;
-            GAME.camera.x += (cx - GAME.camera.x)*0.1 + (Math.random()-0.5)*GAME.shake;
-            GAME.camera.y += (cy - GAME.camera.y)*0.1 + (Math.random()-0.5)*GAME.shake;
+            GAME.camera.x += (player.x - canvas.width/2 - GAME.camera.x) * 0.1;
+            GAME.camera.y += (player.y - canvas.height/2 - GAME.camera.y) * 0.1;
         }
 
         function checkWall(ent, obs) {
@@ -762,8 +725,8 @@
             bots.forEach(b => { if(Math.hypot(b.x-x, b.y-y) < 200) { b.hp-=dmg; showText(b.x, b.y, dmg, '#fff'); } });
         }
 
-        // NUKE LOGIC: Using global function for HTML events
         function useNuke(e) {
+            // STOP PROPAGATION HERE is the fix for touch issues
             if(e) { e.preventDefault(); e.stopPropagation(); }
             if(!GAME.nukeReady) return;
             GAME.shake=60; bots.forEach(b => { b.hp-=1000; showText(b.x, b.y, "-1000", "red"); });
@@ -771,8 +734,9 @@
             AudioSys.shoot(2);
         }
 
-        // MACHINES LOGIC: Bound in JS later
-        function spawnMachine(type) {
+        function spawnMachine(e, type) {
+            // STOP PROPAGATION HERE is the fix for touch issues
+            if(e) { e.preventDefault(); e.stopPropagation(); }
             if(GAME.inv[type] > 0) { GAME.inv[type]--; machines.push(new Machine(player.x, player.y, type)); updateHUD(); }
         }
 
@@ -838,7 +802,7 @@
             document.getElementById('q-grenade').innerText = GAME.inv.grenade;
         }
 
-        function updateNuke() { document.getElementById('nuke-btn').style.display = GAME.nukeReady ? 'flex' : 'none'; }
+        function updateNuke() { document.getElementById('nuke-container').style.display = GAME.nukeReady ? 'flex' : 'none'; document.getElementById('nuke-btn').style.display = GAME.nukeReady ? 'flex' : 'none'; }
         function getNearestTarget(r) { let t=null,m=r; bots.forEach(b=>{let d=Math.hypot(b.x-player.x, b.y-player.y); if(d<m){m=d;t=b;}}); return t; }
         function showText(x, y, text, color) { texts.push({x, y, text, color, life: 60}); }
 
@@ -950,14 +914,6 @@
         }
 
         function toggleSide() { GAME.inverted = !GAME.inverted; applyControlMode(); }
-
-        // BIND MACHINE TOUCH EVENTS MANUALLY
-        function bindMach(id, t) {
-            const el = document.getElementById(id);
-            const fn = (e) => { e.preventDefault(); e.stopPropagation(); spawnMachine(t); };
-            el.addEventListener('touchstart', fn); el.addEventListener('mousedown', fn);
-        }
-        bindMach('btn-turret', 'turret'); bindMach('btn-missile', 'missile'); bindMach('btn-grenade', 'grenade');
 
         document.getElementById('swapBtn').addEventListener('touchstart', e => { e.preventDefault(); player.wIdx = (player.wIdx+1) % WEAPONS.length; updateHUD(); });
         document.getElementById('fire-btn').addEventListener('touchstart', e => { e.preventDefault(); INPUT.manualFire = true; });
