@@ -53,19 +53,24 @@
         /* Máquinas */
         .machines { 
             position: absolute; 
+            /* Padrão Right, mas será manipulado via JS */
             right: 15px; 
             top: auto;
             bottom: 260px; 
             display: flex; flex-direction: column; gap: 15px; pointer-events: auto; 
+            transition: all 0.3s; /* Animação suave na troca de lado */
         }
         
         .m-icon { width: 55px; height: 55px; background: rgba(0,0,0,0.7); border: 2px solid #0ff; border-radius: 8px; display: flex; justify-content: center; align-items: center; font-size: 24px; position: relative; margin-bottom: 5px; }
         .m-icon:active { transform: scale(0.9); background: rgba(0,255,255,0.3); }
         .m-qty { position: absolute; bottom: -2px; right: -2px; background: #f00; font-size: 10px; padding: 1px 4px; border-radius: 3px; font-weight: bold; }
 
-        /* Botão Nuclear */
+        /* Botão Nuclear - CENTRALIZAÇÃO REFORÇADA */
         #nuke-container {
-            position: absolute; top: 100px; left: 50%; transform: translateX(-50%);
+            position: absolute; 
+            top: 100px; 
+            left: 50%; 
+            transform: translateX(-50%); /* Garante o centro exato */
             width: 80px; height: 80px; z-index: 100; pointer-events: auto;
             display: none; justify-content: center; align-items: center;
         }
@@ -146,7 +151,6 @@
         .report-table td { padding: 5px; border-bottom: 1px solid #333; }
         .report-table td:last-child { text-align: right; color: #fff; font-weight: bold; }
         
-        /* Leaderboard Specifics */
         .rank-table { width: 100%; max-width: 400px; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
         .rank-table th { background: #222; padding: 8px; color: #0ff; text-align: left; }
         .rank-table td { padding: 8px; border-bottom: 1px solid #333; }
@@ -474,6 +478,10 @@
                 this.lastShot = Date.now() + (Math.random() * 2000) + 500;
                 this.hp = 50 * (1 + GAME.level*0.1); 
                 this.r=22; this.color='#f00'; this.speed=2; this.view=1000;
+                
+                // Propriedade para controle da morte por nuke
+                this.killedByNuke = false;
+
                 if(type === 'boss') {
                     this.hp = 1500 + (GAME.level*400); this.maxHp=this.hp; this.r=60; this.view=2000;
                     if(Math.random()<0.33) { this.color='#fff'; this.speed=1.0; } 
@@ -743,7 +751,13 @@
         }
 
         function onBotDeath(bot) {
-            GAME.botsAlive--; GAME.killStreak++; 
+            GAME.botsAlive--; 
+            
+            // SÓ CONTA KILLSTREAK SE NÃO FOI MORTE POR NUKE
+            if(!bot.killedByNuke) {
+                GAME.killStreak++; 
+            }
+            
             GAME.money += (bot.type==='boss'?500:50); GAME.score += 50; 
             GAME.stats[bot.type]++;
             items.push({x:bot.x, y:bot.y, type:'hp'});
@@ -787,7 +801,12 @@
         function useNuke(e) {
             if(e) { e.preventDefault(); e.stopPropagation(); }
             if(!GAME.nukeReady) return;
-            GAME.shake=60; bots.forEach(b => { b.hp-=1000; showText(b.x, b.y, "-1000", "red"); });
+            GAME.shake=60; 
+            bots.forEach(b => { 
+                b.hp-=1000; 
+                if (b.hp <= 0) b.killedByNuke = true; // MARCA O BOT PARA NÃO CONTAR KILLSTREAK
+                showText(b.x, b.y, "-1000", "red"); 
+            });
             GAME.nukeReady=false; GAME.killStreak=0; updateNuke();
             AudioSys.shoot(2);
         }
@@ -924,7 +943,6 @@
             document.getElementById('finalLevelDisplay').innerText = `NÍVEL ALCANÇADO: ${GAME.level}`;
             document.getElementById('reportTable').innerHTML = `<tr><td>Grunts</td><td>${GAME.stats.basic}</td></tr><tr><td>Rushers</td><td>${GAME.stats.rusher}</td></tr><tr><td>Snipers</td><td>${GAME.stats.sniper}</td></tr><tr><td>Chefes</td><td>${GAME.stats.boss}</td></tr>`;
             
-            // Reseta input e botão ao morrer
             document.getElementById('playerNameInput').value = '';
             document.getElementById('btnSaveScore').classList.remove('hidden');
             document.getElementById('playerNameInput').classList.remove('hidden');
@@ -932,7 +950,6 @@
         }
         function setColor(c, el) { GAME.playerColor = c; document.querySelectorAll('.c-opt').forEach(d => d.classList.remove('selected')); el.classList.add('selected'); }
 
-        // --- SISTEMA DE LEADERBOARD ---
         function getScores() {
             const s = localStorage.getItem('neonOps_scores');
             return s ? JSON.parse(s) : [];
@@ -943,13 +960,11 @@
             let scores = getScores();
             scores.push({ name: name, level: GAME.level, score: GAME.score });
             
-            // Ordena por Nível (maior melhor), depois Score (maior melhor)
             scores.sort((a, b) => {
                 if(b.level !== a.level) return b.level - a.level;
                 return b.score - a.score;
             });
 
-            // Mantém top 10
             scores = scores.slice(0, 10);
             localStorage.setItem('neonOps_scores', JSON.stringify(scores));
 
@@ -968,9 +983,9 @@
             } else {
                 scores.forEach((s, i) => {
                     let color = '#fff';
-                    if(i===0) color='#ff0'; // Ouro
-                    else if(i===1) color='#ccc'; // Prata
-                    else if(i===2) color='#b08d55'; // Bronze
+                    if(i===0) color='#ff0'; 
+                    else if(i===1) color='#ccc'; 
+                    else if(i===2) color='#b08d55'; 
                     
                     const row = `<tr>
                         <td style="color:${color}">${i+1}</td>
@@ -991,7 +1006,6 @@
             document.getElementById('startMenu').classList.remove('hidden');
         }
 
-        // INPUT & CONTROLS
         function registerJoystick(elmId, type) {
             const el = document.getElementById(elmId); const knob = el.querySelector('.knob');
             el.addEventListener('touchstart', e => { e.preventDefault(); const t = e.changedTouches[0]; INPUT[type].id = t.identifier; INPUT[type].active = true; updateJoy(t, centerFromRect(el), el.offsetWidth/2, knob, type); });
@@ -1013,21 +1027,29 @@
             const mSingle = document.getElementById('joy-single');
             const btnFire = document.getElementById('fire-btn');
             const btnW = document.getElementById('swapBtn');
+            const machines = document.querySelector('.machines'); // SELEÇÃO DAS MÁQUINAS
             
             mMove.className = 'joy-zone hidden'; mAim.className = 'joy-zone hidden'; mSingle.className = 'joy-zone hidden'; btnFire.className = 'hidden';
 
             if(GAME.controlMode === 'dual') {
                 mMove.className = GAME.inverted ? 'joy-zone pos-right' : 'joy-zone pos-left';
                 mAim.className = GAME.inverted ? 'joy-zone pos-left' : 'joy-zone pos-right';
+                
+                // TROCA DE LADO DOS BOTÕES
                 btnW.style.right = GAME.inverted ? 'auto' : '20px'; btnW.style.left = GAME.inverted ? '20px' : 'auto';
+                machines.style.right = GAME.inverted ? 'auto' : '15px'; machines.style.left = GAME.inverted ? '15px' : 'auto';
+
             } else if (GAME.controlMode === 'single_auto') {
                 mSingle.className = 'joy-zone pos-center';
                 btnW.style.right = GAME.inverted ? 'auto' : '20px'; btnW.style.left = GAME.inverted ? '20px' : 'auto';
+                machines.style.right = GAME.inverted ? 'auto' : '15px'; machines.style.left = GAME.inverted ? '15px' : 'auto';
+
             } else if (GAME.controlMode === 'single_manual') {
                 mSingle.className = GAME.inverted ? 'joy-zone pos-right' : 'joy-zone pos-left';
                 btnFire.className = '';
                 btnFire.style.left = GAME.inverted ? '40px' : 'auto'; btnFire.style.right = GAME.inverted ? 'auto' : '40px';
                 btnW.style.left = GAME.inverted ? 'auto' : '20px'; btnW.style.right = GAME.inverted ? '20px' : 'auto';
+                machines.style.left = GAME.inverted ? 'auto' : '15px'; machines.style.right = GAME.inverted ? '15px' : 'auto'; // Lógica inversa para fire manual? Mantive consistente com arma
             }
             updateUIText();
         }
@@ -1057,7 +1079,7 @@
         document.getElementById('fire-btn').addEventListener('touchstart', e => { e.preventDefault(); INPUT.manualFire = true; });
         document.getElementById('fire-btn').addEventListener('touchend', e => { e.preventDefault(); INPUT.manualFire = false; });
 
-        updateUIText(); // Init Text
+        updateUIText(); 
 
     </script>
 </body>
