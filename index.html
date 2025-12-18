@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neon Ops: Infinite War - Perfect Loot</title>
+    <title>Neon Ops: Infinite War - Cheat Fixed</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap');
 
@@ -61,9 +61,30 @@
             transition: all 0.3s;
         }
         
+        /* Poderes */
+        .powers {
+            position: absolute;
+            left: 15px;
+            bottom: 220px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            pointer-events: auto;
+            transition: all 0.3s;
+        }
+
         .m-icon { width: 55px; height: 55px; background: rgba(0,0,0,0.7); border: 2px solid #0ff; border-radius: 8px; display: flex; justify-content: center; align-items: center; font-size: 24px; position: relative; margin-bottom: 5px; }
         .m-icon:active { transform: scale(0.9); background: rgba(0,255,255,0.3); }
         .m-qty { position: absolute; bottom: -2px; right: -2px; background: #f00; font-size: 10px; padding: 1px 4px; border-radius: 3px; font-weight: bold; }
+        
+        .cooldown-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); border-radius: 6px;
+            display: flex; justify-content: center; align-items: center;
+            color: #fff; font-size: 18px; font-weight: bold;
+        }
+        .p-icon { border-color: #ff0; color: #ff0; }
+        .p-active { border-color: #0f0; box-shadow: 0 0 10px #0f0; } 
 
         /* Botão Nuclear - CENTRALIZAÇÃO ABSOLUTA */
         #nuke-container {
@@ -125,7 +146,8 @@
         }
         .hidden { display: none !important; }
 
-        h1 { color: #0ff; font-size: 32px; margin-bottom: 10px; text-align: center; text-transform: uppercase; }
+        h1 { color: #0ff; font-size: 32px; margin-bottom: 10px; text-align: center; text-transform: uppercase; user-select: none; cursor: pointer; }
+        h1:active { transform: scale(0.95); }
         h2 { color: #ffeb3b; margin: 10px 0; font-size: 22px; }
         
         .btn {
@@ -204,6 +226,12 @@
             <div class="m-icon" ontouchstart="spawnMachine(event, 'grenade')" onmousedown="spawnMachine(event, 'grenade')">💣<div class="m-qty" id="q-grenade">0</div></div>
         </div>
 
+        <div class="powers">
+            <div id="btn-freeze" class="m-icon p-icon hidden" ontouchstart="usePower(event, 'freeze')" onmousedown="usePower(event, 'freeze')">❄️<div class="cooldown-overlay hidden" id="cd-freeze"></div></div>
+            <div id="btn-fire" class="m-icon p-icon hidden" ontouchstart="usePower(event, 'fire')" onmousedown="usePower(event, 'fire')">🔥<div class="cooldown-overlay hidden" id="cd-fire"></div></div>
+            <div id="btn-support" class="m-icon p-icon hidden" ontouchstart="usePower(event, 'support')" onmousedown="usePower(event, 'support')">🚁<div class="cooldown-overlay hidden" id="cd-support"></div></div>
+        </div>
+
         <div class="w-btn right" id="swapBtn">
             <div class="w-name" id="wName">PISTOLA</div>
             <div class="w-ammo" id="wAmmo">∞</div>
@@ -217,7 +245,7 @@
     </div>
 
     <div id="startMenu" class="modal">
-        <h1>NEON OPS<br><span style="font-size:16px; color:white;">INFINITE WAR</span></h1>
+        <h1 id="gameTitle">NEON OPS<br><span style="font-size:16px; color:white;">INFINITE WAR</span></h1>
         
         <div style="margin: 10px 0; text-align: center;">
             <p style="color:#aaa; font-size:14px; margin-bottom:5px;">Nível Inicial:</p>
@@ -287,6 +315,10 @@
         <div class="btn-shop" onclick="buyItem('missile', 100)"><span>Míssil x3</span> <span style="color:#0f0">$100</span></div>
         <div class="btn-shop" onclick="buyItem('grenade', 50)"><span>Granada x2</span> <span style="color:#0f0">$50</span></div>
         
+        <div class="btn-shop" id="btnBuyFreeze" onclick="buyPower('freeze', 2000)"><span>Poder: Congelar</span> <span style="color:#ff0">$2000</span></div>
+        <div class="btn-shop" id="btnBuyFire" onclick="buyPower('fire', 1500)"><span>Poder: Fogo</span> <span style="color:#ff0">$1500</span></div>
+        <div class="btn-shop" id="btnBuySupport" onclick="buyPower('support', 1500)"><span>Poder: Apoio</span> <span style="color:#ff0">$1500</span></div>
+
         <div class="btn-shop" id="btnBuyShield" onclick="buyItem('shield', 200)">
             <span>Escudo Inicial</span> <span id="priceShield" style="color:#0af">$200</span>
         </div>
@@ -360,6 +392,8 @@
             camera: {x:0, y:0}, shake:0, money:0, score: 0,
             perks: { dmg:1, hpMult:1, luck:1 },
             inv: { turret:0, missile:0, grenade:0 },
+            powers: { freeze: false, fire: false, support: false },
+            isFrozen: false, 
             boughtShield: false,
             killStreak: 0, nukeReady: false, botsAlive: 0,
             playerColor: '#0ff',
@@ -395,8 +429,44 @@
                 this.angle = 0; this.regenTimer = 0;
                 this.slowTimer = 0; this.jamTimer = 0;
                 this.invulTimer = 0; 
+                
+                // POWERS STATES
+                this.cdFreeze = 0; this.activeFreeze = 0;
+                this.cdFire = 0; this.activeFire = 0;
+                this.cdSupport = 0; this.activeSupport = 0;
+                this.fireAngle = 0; 
             }
             update() {
+                // POWERS UPDATE LOGIC
+                // Freeze
+                if (this.activeFreeze > 0) {
+                    this.activeFreeze--;
+                    if(this.activeFreeze === 0) { GAME.isFrozen = false; this.cdFreeze = 900; } // Start CD after active
+                } else if (this.cdFreeze > 0) this.cdFreeze--;
+
+                // Fire
+                if (this.activeFire > 0) {
+                    this.activeFire--;
+                    if(this.activeFire % 10 === 0) { // CIRCULAR WAVE EVERY 10 FRAMES
+                        for(let i=0; i<12; i++) {
+                            const ang = (Math.PI*2 / 12) * i;
+                            bullets.push({
+                                x: this.x, y: this.y,
+                                vx: Math.cos(ang) * 15, vy: Math.sin(ang) * 15,
+                                dmg: 80 * GAME.perks.dmg, color: '#ff0', player: true, life: 40
+                            });
+                        }
+                    }
+                    if(this.activeFire === 0) this.cdFire = 600;
+                } else if (this.cdFire > 0) this.cdFire--;
+
+                // Support
+                if (this.activeSupport > 0) {
+                    this.activeSupport--;
+                    if(this.activeSupport === 0) this.cdSupport = 900;
+                } else if (this.cdSupport > 0) this.cdSupport--;
+
+
                 let speedMult = 1;
                 if(this.slowTimer > 0) { speedMult = 0.5; this.slowTimer--; }
                 if(this.jamTimer > 0) { this.jamTimer--; }
@@ -417,7 +487,7 @@
                         this.angle = Math.atan2(INPUT.single.y, INPUT.single.x);
                         moving = true;
                     }
-                    let target = getNearestTarget(500);
+                    let target = getNearestTarget(500, this.x, this.y);
                     if (target) this.angle = Math.atan2(target.y - this.y, target.x - this.x);
                     if (GAME.controlMode === 'single_auto' && target) this.shoot();
                     if (GAME.controlMode === 'single_manual' && INPUT.manualFire) this.shoot();
@@ -446,6 +516,29 @@
                 
                 document.getElementById('hpBar').style.width = (this.hp/this.maxHp*100) + '%';
                 document.getElementById('shBar').style.width = Math.max(0, this.shield) + '%';
+                
+                this.updatePowerUI();
+            }
+            updatePowerUI() {
+                const updateBtn = (id, cd, btnId, active) => {
+                    const el = document.getElementById(id);
+                    const btn = document.getElementById(btnId);
+                    
+                    if(active > 0) {
+                        btn.classList.add('p-active');
+                        el.classList.add('hidden');
+                    } else if(cd > 0) {
+                        btn.classList.remove('p-active');
+                        el.classList.remove('hidden');
+                        el.innerText = Math.ceil(cd/60);
+                    } else {
+                        btn.classList.remove('p-active');
+                        el.classList.add('hidden');
+                    }
+                };
+                if(GAME.powers.freeze) updateBtn('cd-freeze', this.cdFreeze, 'btn-freeze', this.activeFreeze);
+                if(GAME.powers.fire) updateBtn('cd-fire', this.cdFire, 'btn-fire', this.activeFire);
+                if(GAME.powers.support) updateBtn('cd-support', this.cdSupport, 'btn-support', this.activeSupport);
             }
             move(dx, dy, mult) {
                 this.x += dx * 4 * mult;
@@ -514,6 +607,29 @@
                 }
 
                 ctx.fillStyle='#333'; ctx.fillRect(10,-5,20,10);
+                
+                // DRAW DRONES
+                if(this.activeSupport > 0) {
+                    for(let i=0; i<3; i++) {
+                        const a = (Date.now()/500) + (i * (Math.PI*2/3));
+                        const dx = Math.cos(a) * 50;
+                        const dy = Math.sin(a) * 50;
+                        ctx.fillStyle = '#0f0';
+                        ctx.beginPath(); ctx.arc(dx, dy, 8, 0, Math.PI*2); ctx.fill();
+                        
+                        // Drone Logic (Independent targeting)
+                        if(Math.floor(Date.now()/100) % 5 === 0) { 
+                            const worldX = this.x + dx;
+                            const worldY = this.y + dy;
+                            const t = getNearestTarget(400, worldX, worldY); // Target relative to drone
+                            if(t) {
+                                const angle = Math.atan2(t.y - worldY, t.x - worldX);
+                                bullets.push({x:worldX, y:worldY, vx:Math.cos(angle)*15, vy:Math.sin(angle)*15, dmg:30*GAME.perks.dmg, color:'#0f0', player:true, life:50});
+                            }
+                        }
+                    }
+                }
+
                 ctx.restore();
             }
         }
@@ -537,6 +653,8 @@
                 else if(type === 'sniper') { this.hp*=0.8; this.r=22; this.color='#b0f'; this.speed=1.5; this.view=1200; }
             }
             update() {
+                if(GAME.isFrozen) return;
+
                 const dx=player.x-this.x, dy=player.y-this.y;
                 const dist=Math.hypot(dx, dy), angle=Math.atan2(dy, dx);
                 const overlap = (this.r + player.r) - dist;
@@ -603,7 +721,10 @@
             }
             draw() {
                 if(!onScreen(this.x, this.y, this.r+20)) return;
-                ctx.save(); ctx.translate(this.x, this.y); ctx.fillStyle = this.color;
+                ctx.save(); ctx.translate(this.x, this.y); 
+                
+                if(GAME.isFrozen) ctx.fillStyle = '#0ff';
+                else ctx.fillStyle = this.color;
                 
                 if (this.type === 'basic') {
                     ctx.beginPath(); ctx.moveTo(0, -this.r); ctx.lineTo(this.r, 0); ctx.lineTo(0, this.r); ctx.lineTo(-this.r, 0); ctx.closePath(); ctx.fill();
@@ -774,10 +895,13 @@
             
             GAME.level = startLvl;
             GAME.score = 0;
-            GAME.money = 0;
+            // CHEAT FIX: Don't reset if money is cheat value
+            if(GAME.money !== 9999999) GAME.money = 0;
+            
             GAME.perks = { dmg:1, hpMult:1, luck:1 };
             GAME.stats = { basic:0, rusher:0, sniper:0, boss:0 };
             GAME.boughtShield = false;
+            GAME.powers = { freeze: false, fire: false, support: false }; // Reset Powers
             
             if (startLvl > 1) {
                 GAME.validRank = false;
@@ -817,6 +941,11 @@
             document.getElementById('priceShield').innerText = "$200";
             document.getElementById('priceShield').style.color = "#0af";
             document.getElementById('btnBuyShield').style.opacity = "1";
+
+            // Mostrar botões de poder se comprados
+            document.getElementById('btn-freeze').className = GAME.powers.freeze ? 'm-icon p-icon' : 'hidden';
+            document.getElementById('btn-fire').className = GAME.powers.fire ? 'm-icon p-icon' : 'hidden';
+            document.getElementById('btn-support').className = GAME.powers.support ? 'm-icon p-icon' : 'hidden';
 
             GAME.active = true; GAME.paused = false;
             generateWorld();
@@ -992,7 +1121,7 @@
             }
 
             if(item.type==='shield') { 
-                if(player.shield >= 100) return false; // Escudo cheio não pega
+                if(player.shield >= 100) return false; 
                 player.shield=100; 
                 showText(player.x, player.y, "ESCUDO", "#0af"); 
                 AudioSys.pickup();
@@ -1002,7 +1131,7 @@
             if(item.type==='shotgun') { 
                 if(WEAPONS[2].ammo >= WEAPONS[2].max) return false;
                 player.wIdx=2; 
-                WEAPONS[2].ammo = Math.min(WEAPONS[2].max, WEAPONS[2].ammo + 10); // +10 balas
+                WEAPONS[2].ammo = Math.min(WEAPONS[2].max, WEAPONS[2].ammo + 10); 
                 showText(player.x, player.y, "SHOTGUN", "#f0f"); 
                 updateHUD(); 
                 AudioSys.pickup();
@@ -1015,6 +1144,25 @@
         function createExplosion(x, y, dmg) {
             GAME.shake=20; showText(x, y, "BOOM!", "orange");
             bots.forEach(b => { if(Math.hypot(b.x-x, b.y-y) < 200) { b.hp-=dmg; showText(b.x, b.y, dmg, '#fff'); } });
+        }
+
+        function usePower(e, type) {
+            if(e) { e.preventDefault(); e.stopPropagation(); }
+            
+            // Check cooldowns
+            if(type === 'freeze' && player.cdFreeze <= 0 && player.activeFreeze <= 0) {
+                GAME.isFrozen = true;
+                player.activeFreeze = 300; // 5s active
+                showText(player.x, player.y, "CONGELADO!", "#0ff");
+            }
+            if(type === 'fire' && player.cdFire <= 0 && player.activeFire <= 0) {
+                player.activeFire = 180; // 3s
+                showText(player.x, player.y, "GIRO DE FOGO!", "#f00");
+            }
+            if(type === 'support' && player.cdSupport <= 0 && player.activeSupport <= 0) {
+                player.activeSupport = 600; // 10s
+                showText(player.x, player.y, "DRONES!", "#0f0");
+            }
         }
 
         function useNuke(e) {
@@ -1065,8 +1213,8 @@
                 // CORES DOS ITENS
                 if (i.type === 'hp') ctx.fillStyle = '#0f0';
                 else if (i.type === 'rifle') ctx.fillStyle = '#ff0';
-                else if (i.type === 'shotgun') ctx.fillStyle = '#f0f'; // ROXO
-                else if (i.type === 'shield') ctx.fillStyle = '#0ff'; // CIANO
+                else if (i.type === 'shotgun') ctx.fillStyle = '#f0f'; 
+                else if (i.type === 'shield') ctx.fillStyle = '#0ff'; 
                 
                 ctx.beginPath(); ctx.arc(i.x, i.y, 10, 0, Math.PI*2); ctx.fill();
             }});
@@ -1126,7 +1274,14 @@
         }
 
         function updateNuke() { document.getElementById('nuke-container').style.display = GAME.nukeReady ? 'flex' : 'none'; document.getElementById('nuke-btn').style.display = GAME.nukeReady ? 'flex' : 'none'; }
-        function getNearestTarget(r) { let t=null,m=r; bots.forEach(b=>{let d=Math.hypot(b.x-player.x, b.y-player.y); if(d<m){m=d;t=b;}}); return t; }
+        function getNearestTarget(r, ox, oy) { 
+            let t=null,m=r; 
+            bots.forEach(b=>{
+                let d=Math.hypot(b.x-(ox||player.x), b.y-(oy||player.y)); 
+                if(d<m){m=d;t=b;}
+            }); 
+            return t; 
+        }
         function showText(x, y, text, color) { texts.push({x, y, text, color, life: 60}); }
 
         function togglePause() {
@@ -1177,7 +1332,7 @@
         function pickPerk(type) {
             if(type === 'dmg') GAME.perks.dmg += 0.2; 
             if(type === 'hp') { 
-                GAME.perks.hpMult += 0.1; // +10% Linear
+                GAME.perks.hpMult += 0.1; 
                 player.maxHp = player.baseHp * GAME.perks.hpMult; 
                 player.hp = player.maxHp; 
                 updateHUD(); 
@@ -1203,6 +1358,19 @@
                 btn.classList.remove('hidden');
                 btn.innerText = "PRÓXIMA MISSÃO";
                 btn.onclick = nextLevel;
+            }
+        }
+
+        function buyPower(type, cost) {
+            if(GAME.money >= cost && !GAME.powers[type]) {
+                GAME.money -= cost;
+                GAME.powers[type] = true;
+                document.getElementById('shopMoney').innerText = GAME.money;
+                
+                const btn = document.getElementById(type === 'freeze' ? 'btnBuyFreeze' : (type === 'fire' ? 'btnBuyFire' : 'btnBuySupport'));
+                btn.innerHTML = `<span>Poder: ${type.toUpperCase()}</span> <span style="color:#0f0">COMPRADO</span>`;
+                btn.style.opacity = "0.5";
+                btn.style.pointerEvents = "none";
             }
         }
 
@@ -1323,6 +1491,29 @@
             }
         }
 
+        // CHEAT CODE
+        let cheatTimer = null;
+        const titleEl = document.getElementById('gameTitle');
+        const startCheat = (e) => { 
+            if(e) e.preventDefault();
+            cheatTimer = setTimeout(() => {
+                GAME.money = 9999999;
+                AudioSys.pickup();
+                alert("MODO RICO ATIVADO!");
+            }, 5000); 
+        };
+        const endCheat = (e) => { 
+            if(e) e.preventDefault();
+            if(cheatTimer) clearTimeout(cheatTimer); 
+        };
+        
+        titleEl.addEventListener('mousedown', startCheat);
+        titleEl.addEventListener('touchstart', startCheat);
+        titleEl.addEventListener('mouseup', endCheat);
+        titleEl.addEventListener('touchend', endCheat);
+        titleEl.addEventListener('mouseleave', endCheat);
+
+
         function registerJoystick(elmId, type) {
             const el = document.getElementById(elmId); const knob = el.querySelector('.knob');
             el.addEventListener('touchstart', e => { e.preventDefault(); const t = e.changedTouches[0]; INPUT[type].id = t.identifier; INPUT[type].active = true; updateJoy(t, centerFromRect(el), el.offsetWidth/2, knob, type); });
@@ -1345,6 +1536,7 @@
             const btnFire = document.getElementById('fire-btn');
             const btnW = document.getElementById('swapBtn');
             const machines = document.querySelector('.machines'); 
+            const powers = document.querySelector('.powers');
             
             mMove.className = 'joy-zone hidden'; mAim.className = 'joy-zone hidden'; mSingle.className = 'joy-zone hidden'; btnFire.className = 'hidden';
 
@@ -1354,11 +1546,13 @@
                 
                 btnW.style.right = GAME.inverted ? 'auto' : '20px'; btnW.style.left = GAME.inverted ? '20px' : 'auto';
                 machines.style.right = GAME.inverted ? 'auto' : '15px'; machines.style.left = GAME.inverted ? '15px' : 'auto';
+                powers.style.left = GAME.inverted ? 'auto' : '15px'; powers.style.right = GAME.inverted ? '15px' : 'auto';
 
             } else if (GAME.controlMode === 'single_auto') {
                 mSingle.className = 'joy-zone pos-center';
                 btnW.style.right = GAME.inverted ? 'auto' : '20px'; btnW.style.left = GAME.inverted ? '20px' : 'auto';
                 machines.style.right = GAME.inverted ? 'auto' : '15px'; machines.style.left = GAME.inverted ? '15px' : 'auto';
+                powers.style.left = GAME.inverted ? 'auto' : '15px'; powers.style.right = GAME.inverted ? '15px' : 'auto';
 
             } else if (GAME.controlMode === 'single_manual') {
                 mSingle.className = GAME.inverted ? 'joy-zone pos-right' : 'joy-zone pos-left';
@@ -1366,6 +1560,7 @@
                 btnFire.style.left = GAME.inverted ? '40px' : 'auto'; btnFire.style.right = GAME.inverted ? 'auto' : '40px';
                 btnW.style.left = GAME.inverted ? 'auto' : '20px'; btnW.style.right = GAME.inverted ? '20px' : 'auto';
                 machines.style.left = GAME.inverted ? 'auto' : '15px'; machines.style.right = GAME.inverted ? '15px' : 'auto'; 
+                powers.style.right = GAME.inverted ? 'auto' : '15px'; powers.style.left = GAME.inverted ? '15px' : 'auto';
             }
             updateUIText();
         }
