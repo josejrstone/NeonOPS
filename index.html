@@ -53,24 +53,23 @@
         /* Máquinas */
         .machines { 
             position: absolute; 
-            /* Padrão Right, mas será manipulado via JS */
             right: 15px; 
             top: auto;
             bottom: 260px; 
             display: flex; flex-direction: column; gap: 15px; pointer-events: auto; 
-            transition: all 0.3s; /* Animação suave na troca de lado */
+            transition: all 0.3s;
         }
         
         .m-icon { width: 55px; height: 55px; background: rgba(0,0,0,0.7); border: 2px solid #0ff; border-radius: 8px; display: flex; justify-content: center; align-items: center; font-size: 24px; position: relative; margin-bottom: 5px; }
         .m-icon:active { transform: scale(0.9); background: rgba(0,255,255,0.3); }
         .m-qty { position: absolute; bottom: -2px; right: -2px; background: #f00; font-size: 10px; padding: 1px 4px; border-radius: 3px; font-weight: bold; }
 
-        /* Botão Nuclear - CENTRALIZAÇÃO REFORÇADA */
+        /* Botão Nuclear */
         #nuke-container {
             position: absolute; 
             top: 100px; 
             left: 50%; 
-            transform: translateX(-50%); /* Garante o centro exato */
+            transform: translateX(-50%);
             width: 80px; height: 80px; z-index: 100; pointer-events: auto;
             display: none; justify-content: center; align-items: center;
         }
@@ -259,8 +258,8 @@
         <div id="perkSection">
             <p style="color:#aaa; margin:5px; font-size:14px;">Escolha uma Melhoria:</p>
             <div class="perk-container">
-                <div class="perk" onclick="pickPerk('dmg')">⚔️<br>+20% Dano</div>
-                <div class="perk" onclick="pickPerk('hp')">❤️<br>+25 Vida</div>
+                <div class="perk" onclick="pickPerk('dmg')">⚔️<br>+30% Dano</div>
+                <div class="perk" onclick="pickPerk('hp')">❤️<br>+20% Vida</div>
                 <div class="perk" onclick="pickPerk('luck')">🍀<br>+Sorte</div>
             </div>
         </div>
@@ -478,9 +477,10 @@
                 this.lastShot = Date.now() + (Math.random() * 2000) + 500;
                 this.hp = 50 * (1 + GAME.level*0.1); 
                 this.r=22; this.color='#f00'; this.speed=2; this.view=1000;
-                
-                // Propriedade para controle da morte por nuke
                 this.killedByNuke = false;
+                
+                // Variável para padrão de tiro do boss
+                this.shootPattern = 0; // 0: Normal, 1: Radial, 2: Spiral
 
                 if(type === 'boss') {
                     this.hp = 1500 + (GAME.level*400); this.maxHp=this.hp; this.r=60; this.view=2000;
@@ -510,7 +510,43 @@
                     if (this.type === 'rusher') { rate=1000; count=3; spread=0.3; }
                     if (this.type === 'sniper') { rate=2500; spread=0.01; spd=25; dmg*=1.5; }
                     
-                    if(now - this.lastShot > rate) {
+                    // BOSS SHOOTING LOGIC
+                    if (this.type === 'boss') {
+                        rate = 800; // Atira mais rápido
+                        if(now - this.lastShot > rate) {
+                            this.lastShot = now;
+                            this.shootPattern = Math.floor(Math.random() * 3); // Randomiza o ataque
+                            
+                            // PADRÃO 1: Radial (Explosão em volta)
+                            if (this.shootPattern === 1) {
+                                const sides = 8 + Math.floor(GAME.level/10); // Aumenta lados com nível
+                                for(let i=0; i<sides; i++) {
+                                    const a = (Math.PI*2 / sides) * i;
+                                    bullets.push({x:this.x, y:this.y, vx:Math.cos(a)*8, vy:Math.sin(a)*8, dmg:dmg, color:'#f0f', player:false, life:120});
+                                }
+                            } 
+                            // PADRÃO 2: Espiral (Tiro giratório)
+                            else if (this.shootPattern === 2) {
+                                // Dispara 3 tiros rápidos girando
+                                for(let k=0; k<3; k++) {
+                                    setTimeout(() => {
+                                        if(this.hp<=0) return;
+                                        const a = angle + (k * 0.5);
+                                        bullets.push({x:this.x, y:this.y, vx:Math.cos(a)*10, vy:Math.sin(a)*10, dmg:dmg, color:'#ff0', player:false, life:100});
+                                    }, k*100);
+                                }
+                            }
+                            // PADRÃO 0: Focado (Tiro triplo no player)
+                            else {
+                                for(let i=0; i<3; i++) {
+                                    const s = (Math.random()-0.5)*0.2;
+                                    bullets.push({x:this.x, y:this.y, vx:Math.cos(angle+s)*12, vy:Math.sin(angle+s)*12, dmg:dmg, color:'#f55', player:false, life:100});
+                                }
+                            }
+                        }
+                    } 
+                    // BOTS NORMAIS
+                    else if(now - this.lastShot > rate) {
                         this.lastShot = now;
                         for(let i=0; i<count; i++) {
                             const s = (Math.random()-0.5)*spread;
@@ -612,6 +648,7 @@
                 showText(player.x, player.y, "ESCUDO ATIVO", "#0af");
             }
 
+            // FUNÇÃO AUXILIAR SPAWN BOTS
             const spawnBot = (count) => {
                 for(let i=0; i<count; i++) {
                     let type = 'basic';
@@ -624,12 +661,26 @@
                 }
             };
 
+            // LÓGICA DE GERAÇÃO DE CHEFES
             if(isBoss) {
-                bots.push(new Bot(100, 100, 'boss'));
-                showText(player.x, player.y-100, "CHEFÃO DETECTADO", "red");
+                let bossCount = 1;
+                if(GAME.level > 50) bossCount = 2;
+                if(GAME.level > 80) bossCount = 3;
                 
-                if(GAME.level > 30) {
-                    const minionCount = Math.floor((GAME.level - 30) * 0.5) + 2; 
+                // Spawna os chefes
+                for(let b=0; b<bossCount; b++) {
+                    // Posições levemente diferentes para não sobrepor
+                    bots.push(new Bot(100 + (b*100), 100 + (b*100), 'boss'));
+                }
+                
+                showText(player.x, player.y-100, `${bossCount > 1 ? bossCount + ' CHEFÕES' : 'CHEFÃO'} DETECTADO!`, "red");
+                
+                // Minions (Bots normais) nas fases de chefe, aumenta muito acima do 50
+                let minionCount = 0;
+                if(GAME.level > 30) minionCount = Math.floor((GAME.level - 30) * 0.5) + 2;
+                if(GAME.level > 60) minionCount += 10; // Mais pressão
+                
+                if(minionCount > 0) {
                     spawnBot(minionCount);
                     showText(player.x, player.y-140, `+${minionCount} REFORÇOS`, "#ff0");
                 }
@@ -753,7 +804,6 @@
         function onBotDeath(bot) {
             GAME.botsAlive--; 
             
-            // SÓ CONTA KILLSTREAK SE NÃO FOI MORTE POR NUKE
             if(!bot.killedByNuke) {
                 GAME.killStreak++; 
             }
@@ -782,7 +832,13 @@
         function applyItem(item) {
             AudioSys.pickup();
             let txt="", col="#fff";
-            if(item.type==='hp') { player.hp = Math.min(player.maxHp, player.hp+30); txt="VIDA"; col="#0f0"; }
+            
+            // DROP DE VIDA AGORA É EM PORCENTAGEM (30%)
+            if(item.type==='hp') { 
+                const healAmt = player.maxHp * 0.30; 
+                player.hp = Math.min(player.maxHp, player.hp + healAmt); 
+                txt="VIDA +30%"; col="#0f0"; 
+            }
             else if(item.type==='ammo') { 
                 WEAPONS[1].ammo = Math.min(WEAPONS[1].max, WEAPONS[1].ammo + 40); 
                 WEAPONS[2].ammo = Math.min(WEAPONS[2].max, WEAPONS[2].ammo + 15); 
@@ -804,7 +860,7 @@
             GAME.shake=60; 
             bots.forEach(b => { 
                 b.hp-=1000; 
-                if (b.hp <= 0) b.killedByNuke = true; // MARCA O BOT PARA NÃO CONTAR KILLSTREAK
+                if (b.hp <= 0) b.killedByNuke = true; 
                 showText(b.x, b.y, "-1000", "red"); 
             });
             GAME.nukeReady=false; GAME.killStreak=0; updateNuke();
@@ -911,8 +967,9 @@
         function nextLevel() { GAME.level++; initLevel(); }
         
         function pickPerk(type) {
-            if(type === 'dmg') GAME.perks.dmg += 0.2;
-            if(type === 'hp') GAME.perks.hpMult += 0.25;
+            // AJUSTE: DANO AGORA É 30%, VIDA É 20%
+            if(type === 'dmg') GAME.perks.dmg += 0.3;
+            if(type === 'hp') GAME.perks.hpMult += 0.20;
             if(type === 'luck') GAME.perks.luck += 0.5;
             document.getElementById('perkSection').classList.add('hidden');
             document.getElementById('perkMsg').classList.remove('hidden');
@@ -1027,7 +1084,7 @@
             const mSingle = document.getElementById('joy-single');
             const btnFire = document.getElementById('fire-btn');
             const btnW = document.getElementById('swapBtn');
-            const machines = document.querySelector('.machines'); // SELEÇÃO DAS MÁQUINAS
+            const machines = document.querySelector('.machines'); 
             
             mMove.className = 'joy-zone hidden'; mAim.className = 'joy-zone hidden'; mSingle.className = 'joy-zone hidden'; btnFire.className = 'hidden';
 
@@ -1035,7 +1092,6 @@
                 mMove.className = GAME.inverted ? 'joy-zone pos-right' : 'joy-zone pos-left';
                 mAim.className = GAME.inverted ? 'joy-zone pos-left' : 'joy-zone pos-right';
                 
-                // TROCA DE LADO DOS BOTÕES
                 btnW.style.right = GAME.inverted ? 'auto' : '20px'; btnW.style.left = GAME.inverted ? '20px' : 'auto';
                 machines.style.right = GAME.inverted ? 'auto' : '15px'; machines.style.left = GAME.inverted ? '15px' : 'auto';
 
@@ -1049,7 +1105,7 @@
                 btnFire.className = '';
                 btnFire.style.left = GAME.inverted ? '40px' : 'auto'; btnFire.style.right = GAME.inverted ? 'auto' : '40px';
                 btnW.style.left = GAME.inverted ? 'auto' : '20px'; btnW.style.right = GAME.inverted ? '20px' : 'auto';
-                machines.style.left = GAME.inverted ? 'auto' : '15px'; machines.style.right = GAME.inverted ? '15px' : 'auto'; // Lógica inversa para fire manual? Mantive consistente com arma
+                machines.style.left = GAME.inverted ? 'auto' : '15px'; machines.style.right = GAME.inverted ? '15px' : 'auto'; 
             }
             updateUIText();
         }
