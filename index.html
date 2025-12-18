@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neon Ops: Corrected</title>
+    <title>Neon Ops: Infinite War</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap');
 
@@ -19,7 +19,7 @@
         .bars { display: flex; flex-direction: column; gap: 4px; pointer-events: none; }
         .bar-bg { width: 130px; height: 12px; background: #222; border: 1px solid #555; transform: skewX(-15deg); }
         .hp-fill { width: 100%; height: 100%; background: #f00; transition: width 0.1s linear; } 
-        .sh-fill { width: 0%; height: 100%; background: #00aaff; } /* Sem transition para realtime */
+        .sh-fill { width: 0%; height: 100%; background: #00aaff; } 
         
         .info { text-align: right; text-shadow: 1px 1px 2px black; pointer-events: none; }
         .lvl { font-size: 24px; color: #ffeb3b; font-weight: bold; display: block;}
@@ -52,15 +52,18 @@
 
         /* Máquinas */
         .machines { 
-            position: absolute; right: 15px; top: 90px; 
+            position: absolute; 
+            right: 15px; 
+            top: auto;
+            bottom: 260px; 
             display: flex; flex-direction: column; gap: 15px; pointer-events: auto; 
         }
-        /* Aumentei a área de toque dos icones */
+        
         .m-icon { width: 55px; height: 55px; background: rgba(0,0,0,0.7); border: 2px solid #0ff; border-radius: 8px; display: flex; justify-content: center; align-items: center; font-size: 24px; position: relative; margin-bottom: 5px; }
         .m-icon:active { transform: scale(0.9); background: rgba(0,255,255,0.3); }
         .m-qty { position: absolute; bottom: -2px; right: -2px; background: #f00; font-size: 10px; padding: 1px 4px; border-radius: 3px; font-weight: bold; }
 
-        /* Botão Nuclear - Z-INDEX ALTO para garantir clique */
+        /* Botão Nuclear */
         #nuke-container {
             position: absolute; top: 100px; left: 50%; transform: translateX(-50%);
             width: 80px; height: 80px; z-index: 100; pointer-events: auto;
@@ -142,6 +145,17 @@
         .report-table { width: 100%; max-width: 300px; border-collapse: collapse; margin-bottom: 20px; color: #ccc; }
         .report-table td { padding: 5px; border-bottom: 1px solid #333; }
         .report-table td:last-child { text-align: right; color: #fff; font-weight: bold; }
+        
+        /* Leaderboard Specifics */
+        .rank-table { width: 100%; max-width: 400px; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+        .rank-table th { background: #222; padding: 8px; color: #0ff; text-align: left; }
+        .rank-table td { padding: 8px; border-bottom: 1px solid #333; }
+        .rank-table tr:nth-child(even) { background: rgba(255,255,255,0.05); }
+        
+        .name-input {
+            padding: 10px; font-size: 18px; border: 2px solid #0ff; background: #111; color: white;
+            text-align: center; font-family: 'Rajdhani'; border-radius: 5px; margin-bottom: 15px; width: 250px;
+        }
 
         @keyframes pulse { 0% { transform: translateX(-50%) scale(1); } 50% { transform: translateX(-50%) scale(1.1); box-shadow: 0 0 20px red; } 100% { transform: translateX(-50%) scale(1); } }
         @keyframes blink { 0% { opacity: 1; } 100% { opacity: 0.5; } }
@@ -193,7 +207,7 @@
     </div>
 
     <div id="startMenu" class="modal">
-        <h1>NEON OPS<br><span style="font-size:16px; color:white;">CORRECTED</span></h1>
+        <h1>NEON OPS<br><span style="font-size:16px; color:white;">INFINITE WAR</span></h1>
         
         <p style="color:#aaa; font-size:14px;">Cor do Agente</p>
         <div class="color-picker">
@@ -203,12 +217,24 @@
             <div class="c-opt" style="background:#ff0" onclick="setColor('#ff0', this)"></div>
         </div>
 
-        <button class="btn" onclick="startGame()">INICIAR AVENTURA</button>
+        <button class="btn" onclick="startGame()">INICIAR GUERRA INFINITA</button>
+        <button class="btn btn-shop" style="justify-content:center;" onclick="showLeaderboard()">🏆 HISTÓRICO GERAL</button>
         
         <div style="display:flex; flex-direction:column; gap:10px; margin-top:10px; align-items:center;">
             <button class="btn btn-shop" style="width:250px; font-size:14px;" id="btnModeStart" onclick="cycleControlMode()">CONTROLE: DUPLO</button>
             <button class="btn btn-shop" style="width:250px; font-size:14px;" id="btnSwapStart" onclick="toggleSide()">LADO: PADRÃO</button>
         </div>
+    </div>
+
+    <div id="leaderboardMenu" class="modal hidden">
+        <h1>HALL DA FAMA</h1>
+        <div style="max-height: 60%; overflow-y: auto; width: 100%; display:flex; justify-content:center;">
+            <table class="rank-table">
+                <thead><tr><th>#</th><th>NOME</th><th>NÍVEL</th><th>SCORE</th></tr></thead>
+                <tbody id="leaderboardBody"></tbody>
+            </table>
+        </div>
+        <button class="btn" style="margin-top:20px;" onclick="closeLeaderboard()">VOLTAR</button>
     </div>
 
     <div id="pauseMenu" class="modal hidden">
@@ -240,6 +266,10 @@
         <div class="btn-shop" onclick="buyItem('turret', 200)"><span>Torreta</span> <span style="color:#0f0">$200</span></div>
         <div class="btn-shop" onclick="buyItem('missile', 100)"><span>Míssil x3</span> <span style="color:#0f0">$100</span></div>
         <div class="btn-shop" onclick="buyItem('grenade', 50)"><span>Granada x2</span> <span style="color:#0f0">$50</span></div>
+        
+        <div class="btn-shop" id="btnBuyShield" onclick="buyItem('shield', 200)">
+            <span>Escudo Inicial</span> <span id="priceShield" style="color:#0af">$200</span>
+        </div>
 
         <button class="btn btn-green hidden" id="btnNextLevel" style="margin-top:20px;" onclick="nextLevel()">PRÓXIMA MISSÃO</button>
     </div>
@@ -247,6 +277,13 @@
     <div id="deadMenu" class="modal hidden">
         <h1 style="color:red">FIM DE JOGO</h1>
         <h2 id="finalScore">SCORE: 0</h2>
+        <h3 id="finalLevelDisplay" style="color:#0ff; margin-bottom:10px;">NÍVEL ALCANÇADO: 1</h3>
+        
+        <p style="color:#aaa; font-size:14px; margin-bottom:5px;">REGISTRE SEU NOME:</p>
+        <input type="text" id="playerNameInput" class="name-input" placeholder="AGENTE..." maxlength="10">
+        <button class="btn btn-green" id="btnSaveScore" onclick="saveCurrentScore()">SALVAR RECORDE</button>
+        <div id="saveMsg" class="hidden" style="color:#0f0; margin-bottom:10px;">SALVO!</div>
+
         <h3>RELATÓRIO</h3>
         <table class="report-table" id="reportTable"></table>
         <button class="btn" onclick="returnToMenu()">MENU PRINCIPAL</button>
@@ -295,6 +332,7 @@
             camera: {x:0, y:0}, shake:0, money:0, score: 0,
             perks: { dmg:1, hpMult:1, luck:1 },
             inv: { turret:0, missile:0, grenade:0 },
+            boughtShield: false,
             killStreak: 0, nukeReady: false, botsAlive: 0,
             playerColor: '#0ff',
             stats: { basic:0, rusher:0, sniper:0, boss:0 },
@@ -432,11 +470,12 @@
 
         class Bot {
             constructor(x, y, type) {
-                this.x=x; this.y=y; this.type=type; this.lastShot=0;
+                this.x=x; this.y=y; this.type=type; 
+                this.lastShot = Date.now() + (Math.random() * 2000) + 500;
                 this.hp = 50 * (1 + GAME.level*0.1); 
                 this.r=22; this.color='#f00'; this.speed=2; this.view=1000;
                 if(type === 'boss') {
-                    this.hp = 1500 + (GAME.level*300); this.maxHp=this.hp; this.r=60; this.view=2000;
+                    this.hp = 1500 + (GAME.level*400); this.maxHp=this.hp; this.r=60; this.view=2000;
                     if(Math.random()<0.33) { this.color='#fff'; this.speed=1.0; } 
                     else if(Math.random()<0.5) { this.color='#fa0'; this.speed=2.5; } 
                     else { this.color='#b0f'; this.speed=1.2; } 
@@ -538,10 +577,9 @@
             bots=[]; bullets=[]; items=[]; texts=[]; obstacles=[]; machines=[]; traps=[]; exitPortal = null;
             
             const isBoss = GAME.level % 5 === 0;
-            // Original spawn logic (User preferred)
-            const safeZone = 400; // Small safe zone
+            const safeZone = 400;
 
-            if(!isBoss) {
+            if(!isBoss || GAME.level > 20) { 
                 for(let i=0; i<30; i++) {
                     let ox, oy, d;
                     do { ox=Math.random()*GAME.width; oy=Math.random()*GAME.height; d=Math.hypot(ox-GAME.width/2, oy-GAME.height/2); } 
@@ -559,12 +597,14 @@
             for(let i=0; i<10 + (GAME.perks.luck*2); i++) spawnLootAt(Math.random()*GAME.width, Math.random()*GAME.height);
 
             player = new Player(GAME.width/2, GAME.height/2);
+            
+            if (GAME.boughtShield) {
+                player.shield = 100;
+                GAME.boughtShield = false;
+                showText(player.x, player.y, "ESCUDO ATIVO", "#0af");
+            }
 
-            if(isBoss) {
-                bots.push(new Bot(100, 100, 'boss'));
-                showText(player.x, player.y-100, "CHEFÃO DETECTADO", "red");
-            } else {
-                const count = Math.max(1, Math.floor(GAME.level * 0.8));
+            const spawnBot = (count) => {
                 for(let i=0; i<count; i++) {
                     let type = 'basic';
                     if (GAME.level > 2 && Math.random()<0.3) type = 'rusher';
@@ -574,6 +614,21 @@
                     while(d < safeZone);
                     bots.push(new Bot(bx, by, type));
                 }
+            };
+
+            if(isBoss) {
+                bots.push(new Bot(100, 100, 'boss'));
+                showText(player.x, player.y-100, "CHEFÃO DETECTADO", "red");
+                
+                if(GAME.level > 30) {
+                    const minionCount = Math.floor((GAME.level - 30) * 0.5) + 2; 
+                    spawnBot(minionCount);
+                    showText(player.x, player.y-140, `+${minionCount} REFORÇOS`, "#ff0");
+                }
+
+            } else {
+                const count = Math.max(1, Math.floor(GAME.level * 0.8));
+                spawnBot(count);
             }
             GAME.botsAlive = bots.length;
             updateHUD();
@@ -586,6 +641,7 @@
             GAME.money = 0; GAME.level = 1; GAME.score = 0;
             GAME.perks = { dmg:1, hpMult:1, luck:1 };
             GAME.stats = { basic:0, rusher:0, sniper:0, boss:0 };
+            GAME.boughtShield = false;
             initLevel();
         }
 
@@ -595,6 +651,11 @@
             document.getElementById('perkSection').classList.remove('hidden');
             document.getElementById('perkMsg').classList.add('hidden');
             document.getElementById('btnNextLevel').classList.add('hidden');
+            
+            document.getElementById('priceShield').innerText = "$200";
+            document.getElementById('priceShield').style.color = "#0af";
+            document.getElementById('btnBuyShield').style.opacity = "1";
+
             GAME.active = true; GAME.paused = false;
             generateWorld();
             loop();
@@ -620,7 +681,6 @@
                 if(t.active && Math.hypot(player.x-t.x, player.y-t.y) < player.r + t.r) {
                     t.active = false; 
                     AudioSys.zap();
-                    // NO SCORE PENALTY
                     if(t.type === 'damage') { player.takeDamage(20); showText(player.x, player.y, "MINA!", "red"); }
                     if(t.type === 'slow') { player.slowTimer = 180; showText(player.x, player.y, "LENTO!", "#d35400"); }
                     if(t.type === 'jam') { player.jamTimer = 180; showText(player.x, player.y, "TRAVADO!", "#2980b9"); }
@@ -710,7 +770,6 @@
             let txt="", col="#fff";
             if(item.type==='hp') { player.hp = Math.min(player.maxHp, player.hp+30); txt="VIDA"; col="#0f0"; }
             else if(item.type==='ammo') { 
-                // AMMO PICKUP: Just refill, don't switch
                 WEAPONS[1].ammo = Math.min(WEAPONS[1].max, WEAPONS[1].ammo + 40); 
                 WEAPONS[2].ammo = Math.min(WEAPONS[2].max, WEAPONS[2].ammo + 15); 
                 txt="MUNIÇÃO"; col="#ff0"; 
@@ -726,7 +785,6 @@
         }
 
         function useNuke(e) {
-            // STOP PROPAGATION HERE is the fix for touch issues
             if(e) { e.preventDefault(); e.stopPropagation(); }
             if(!GAME.nukeReady) return;
             GAME.shake=60; bots.forEach(b => { b.hp-=1000; showText(b.x, b.y, "-1000", "red"); });
@@ -735,7 +793,6 @@
         }
 
         function spawnMachine(e, type) {
-            // STOP PROPAGATION HERE is the fix for touch issues
             if(e) { e.preventDefault(); e.stopPropagation(); }
             if(GAME.inv[type] > 0) { GAME.inv[type]--; machines.push(new Machine(player.x, player.y, type)); updateHUD(); }
         }
@@ -844,14 +901,95 @@
         }
 
         function buyItem(type, cost) {
-            if(GAME.money >= cost) { GAME.money -= cost; GAME.inv[type]++; document.getElementById('shopMoney').innerText = GAME.money; }
+            if(GAME.money >= cost) {
+                if(type === 'shield') {
+                    if(!GAME.boughtShield) {
+                        GAME.money -= cost;
+                        GAME.boughtShield = true;
+                        document.getElementById('shopMoney').innerText = GAME.money;
+                        document.getElementById('priceShield').innerText = "COMPRADO";
+                        document.getElementById('priceShield').style.color = "#0f0";
+                        document.getElementById('btnBuyShield').style.opacity = "0.5";
+                    }
+                } else {
+                    GAME.money -= cost; 
+                    GAME.inv[type]++; 
+                    document.getElementById('shopMoney').innerText = GAME.money; 
+                }
+            }
         }
         function gameOver() {
             GAME.active = false; document.getElementById('deadMenu').classList.remove('hidden');
             document.getElementById('finalScore').innerText = `SCORE: ${GAME.score}`;
+            document.getElementById('finalLevelDisplay').innerText = `NÍVEL ALCANÇADO: ${GAME.level}`;
             document.getElementById('reportTable').innerHTML = `<tr><td>Grunts</td><td>${GAME.stats.basic}</td></tr><tr><td>Rushers</td><td>${GAME.stats.rusher}</td></tr><tr><td>Snipers</td><td>${GAME.stats.sniper}</td></tr><tr><td>Chefes</td><td>${GAME.stats.boss}</td></tr>`;
+            
+            // Reseta input e botão ao morrer
+            document.getElementById('playerNameInput').value = '';
+            document.getElementById('btnSaveScore').classList.remove('hidden');
+            document.getElementById('playerNameInput').classList.remove('hidden');
+            document.getElementById('saveMsg').classList.add('hidden');
         }
         function setColor(c, el) { GAME.playerColor = c; document.querySelectorAll('.c-opt').forEach(d => d.classList.remove('selected')); el.classList.add('selected'); }
+
+        // --- SISTEMA DE LEADERBOARD ---
+        function getScores() {
+            const s = localStorage.getItem('neonOps_scores');
+            return s ? JSON.parse(s) : [];
+        }
+
+        function saveCurrentScore() {
+            const name = document.getElementById('playerNameInput').value.trim() || "ANÔNIMO";
+            let scores = getScores();
+            scores.push({ name: name, level: GAME.level, score: GAME.score });
+            
+            // Ordena por Nível (maior melhor), depois Score (maior melhor)
+            scores.sort((a, b) => {
+                if(b.level !== a.level) return b.level - a.level;
+                return b.score - a.score;
+            });
+
+            // Mantém top 10
+            scores = scores.slice(0, 10);
+            localStorage.setItem('neonOps_scores', JSON.stringify(scores));
+
+            document.getElementById('btnSaveScore').classList.add('hidden');
+            document.getElementById('playerNameInput').classList.add('hidden');
+            document.getElementById('saveMsg').classList.remove('hidden');
+        }
+
+        function showLeaderboard() {
+            const scores = getScores();
+            const tbody = document.getElementById('leaderboardBody');
+            tbody.innerHTML = '';
+            
+            if(scores.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#aaa;">Nenhum registro ainda</td></tr>';
+            } else {
+                scores.forEach((s, i) => {
+                    let color = '#fff';
+                    if(i===0) color='#ff0'; // Ouro
+                    else if(i===1) color='#ccc'; // Prata
+                    else if(i===2) color='#b08d55'; // Bronze
+                    
+                    const row = `<tr>
+                        <td style="color:${color}">${i+1}</td>
+                        <td style="color:${color}">${s.name}</td>
+                        <td style="color:${color}">${s.level}</td>
+                        <td style="color:${color}">${s.score}</td>
+                    </tr>`;
+                    tbody.innerHTML += row;
+                });
+            }
+
+            document.getElementById('startMenu').classList.add('hidden');
+            document.getElementById('leaderboardMenu').classList.remove('hidden');
+        }
+
+        function closeLeaderboard() {
+            document.getElementById('leaderboardMenu').classList.add('hidden');
+            document.getElementById('startMenu').classList.remove('hidden');
+        }
 
         // INPUT & CONTROLS
         function registerJoystick(elmId, type) {
