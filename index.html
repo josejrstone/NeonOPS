@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neon Ops: Infinite War - Final Balance</title>
+    <title>Neon Ops: Infinite War - Ultimate Balance</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap');
 
@@ -65,11 +65,11 @@
         .m-icon:active { transform: scale(0.9); background: rgba(0,255,255,0.3); }
         .m-qty { position: absolute; bottom: -2px; right: -2px; background: #f00; font-size: 10px; padding: 1px 4px; border-radius: 3px; font-weight: bold; }
 
-        /* Botão Nuclear - CENTRALIZAÇÃO CORRIGIDA */
+        /* Botão Nuclear - CENTRALIZAÇÃO FIXA */
         #nuke-container {
             position: absolute; 
             top: 100px; 
-            left: 0; right: 0; margin: 0 auto; /* Centraliza horizontalmente */
+            left: 0; right: 0; margin: 0 auto; 
             width: 80px; height: 80px; z-index: 100; pointer-events: auto;
             display: none; justify-content: center; align-items: center;
         }
@@ -163,7 +163,6 @@
             width: 100px; text-align: center; font-size: 18px; padding: 5px; background: #222; color: #fff; border: 1px solid #555; margin-bottom: 10px;
         }
 
-        /* Animação corrigida para não interferir na centralização */
         @keyframes pulse { 
             0% { transform: scale(1); } 
             50% { transform: scale(1.1); box-shadow: 0 0 20px red; } 
@@ -277,7 +276,7 @@
             <p style="color:#aaa; margin:5px; font-size:14px;">Escolha uma Melhoria:</p>
             <div class="perk-container">
                 <div class="perk" onclick="pickPerk('dmg')">⚔️<br>+20% Dano</div>
-                <div class="perk" onclick="pickPerk('hp')">❤️<br>+20% Vida</div>
+                <div class="perk" onclick="pickPerk('hp')">❤️<br>+10% Vida</div>
                 <div class="perk" onclick="pickPerk('luck')">🍀<br>+Sorte</div>
             </div>
         </div>
@@ -290,6 +289,10 @@
         
         <div class="btn-shop" id="btnBuyShield" onclick="buyItem('shield', 200)">
             <span>Escudo Inicial</span> <span id="priceShield" style="color:#0af">$200</span>
+        </div>
+        
+        <div class="btn-shop" id="btnBuyNuke" onclick="buyItem('nuke', 1000)">
+            <span>Bomba Nuclear</span> <span style="color:#f00">$1000</span>
         </div>
 
         <button class="btn btn-green hidden" id="btnNextLevel" style="margin-top:20px;" onclick="nextLevel()">PRÓXIMA MISSÃO</button>
@@ -486,13 +489,18 @@
                 if(GAME.godMode) return; 
                 if(this.invulTimer > 0) return; 
 
+                // ESCUDO AGORA É TÁTICO: PERDE 20% FIXO POR TIRO (TANCA 5 HITS)
+                // Isso o torna efetivo em qualquer nível
                 if(this.shield > 0) {
-                    this.shield -= amt * 2; 
+                    this.shield -= 20; 
                     if(this.shield < 0) this.shield = 0;
-                    showText(this.x, this.y, "ESCUDO!", "#0af");
+                    showText(this.x, this.y, "BLOQUEADO!", "#0af");
                     this.invulTimer = 30; 
+                    // NÃO RESETA KILLSTREAK
                     return;
                 }
+                
+                // HP
                 this.hp -= amt; this.regenTimer = 300; 
                 this.invulTimer = 60; 
                 GAME.killStreak = 0; updateNuke(); GAME.shake = 10;
@@ -858,9 +866,8 @@
                 if(t.active && Math.hypot(player.x-t.x, player.y-t.y) < player.r + t.r) {
                     t.active = false; 
                     AudioSys.zap();
-                    // BALANCEAMENTO: DANO PERCENTUAL
                     if(t.type === 'damage') { 
-                        let dmg = Math.floor(player.maxHp * 0.15); // 15% Max HP
+                        let dmg = Math.floor(player.maxHp * 0.15); 
                         player.takeDamage(dmg); 
                         showText(player.x, player.y, "MINA!", "red"); 
                     }
@@ -926,19 +933,24 @@
 
         function onBotDeath(bot) {
             GAME.botsAlive--; 
-            if(!bot.killedByNuke) GAME.killStreak++; 
+            
+            // Só conta killstreak se NÃO foi morto por Nuke
+            if(!bot.killedByNuke) {
+                GAME.killStreak++; 
+            }
+            
             GAME.money += (bot.type==='boss'?500:50); GAME.score += 50; 
             GAME.stats[bot.type]++;
             
-            // RNG DE HP REFINADO
-            let hpVal = 0.01; // Padrão 1%
+            // RNG DE HP (Chance de dropar vida)
+            let hpVal = 0.01; 
             if (bot.type === 'boss') hpVal = 0.30;
             else {
                 const r = Math.random();
-                if(r < 0.50) hpVal = 0.01;      // 50% chance de 1%
-                else if(r < 0.80) hpVal = 0.05; // 30% chance de 5%
-                else if(r < 0.95) hpVal = 0.10; // 15% chance de 10%
-                else hpVal = 0.30;              // 5% chance de 30%
+                if(r < 0.60) hpVal = 0.01;      // 60% chance de 1%
+                else if(r < 0.85) hpVal = 0.05; // 25% chance de 5%
+                else if(r < 0.98) hpVal = 0.10; // 13% chance de 10%
+                else hpVal = 0.15;              // 2% chance de 15% (Raro)
             }
             
             items.push({x:bot.x, y:bot.y, type:'hp', val: hpVal});
@@ -974,12 +986,13 @@
                 if(pct===1) col="#aaa";
                 else if(pct===5) col="#fff";
                 else if(pct===10) col="#ffaa00";
+                else if(pct===15) col="#ff0000";
                 else if(pct===30) col="#00ff00";
             }
             else if(item.type==='ammo') { 
                 WEAPONS[1].ammo = Math.min(WEAPONS[1].max, WEAPONS[1].ammo + 40); 
                 WEAPONS[2].ammo = Math.min(WEAPONS[2].max, WEAPONS[2].ammo + 15); 
-                txt="RIFLE"; col="#ff0"; // NOME CORRIGIDO
+                txt="RIFLE"; col="#ff0"; 
             }
             else if(item.type==='shield') { player.shield=100; txt="ESCUDO"; col="#0af"; }
             else if(item.type==='weapon') { player.wIdx=2; WEAPONS[2].ammo = WEAPONS[2].max; txt="SHOTGUN"; col="#f0f"; updateHUD(); }
@@ -995,14 +1008,21 @@
             if(e) { e.preventDefault(); e.stopPropagation(); }
             if(!GAME.nukeReady) return;
             
-            // START FX
             nukeEffect = { active: true, r: 10, alpha: 1.0 };
             GAME.shake=60; 
             
             bots.forEach(b => { 
-                b.hp-=1000; 
-                if (b.hp <= 0) b.killedByNuke = true; 
-                showText(b.x, b.y, "-1000", "red"); 
+                b.killedByNuke = true; // Marca que morreu por nuke
+                if (b.type === 'boss') {
+                    // Dano percentual em chefes (30% da vida MAX)
+                    let dmg = b.maxHp * 0.30;
+                    b.hp -= dmg;
+                    showText(b.x, b.y, Math.round(dmg), "red");
+                } else {
+                    // Insta-kill em bots normais
+                    b.hp = 0; 
+                    showText(b.x, b.y, "INSTA-KILL", "red"); 
+                }
             });
             GAME.nukeReady=false; GAME.killStreak=0; updateNuke();
             AudioSys.shoot(2);
@@ -1048,7 +1068,6 @@
                 ctx.fillStyle=b.color; ctx.beginPath(); ctx.arc(b.x,b.y,4,0,Math.PI*2); ctx.fill(); 
             }});
             
-            // DRAW NUKE FX
             if(nukeEffect.active) {
                 ctx.save();
                 ctx.globalAlpha = nukeEffect.alpha;
@@ -1058,7 +1077,7 @@
                 ctx.restore();
             }
 
-            // TEXTOS COM BORDA PARA VISIBILIDADE
+            // TEXTOS COM BORDA
             texts.forEach((t,i) => { 
                 ctx.font="bold 20px Arial"; 
                 ctx.lineWidth = 3; ctx.strokeStyle = 'black'; ctx.strokeText(t.text, t.x, t.y);
@@ -1143,7 +1162,7 @@
         function pickPerk(type) {
             if(type === 'dmg') GAME.perks.dmg += 0.2; 
             if(type === 'hp') { 
-                GAME.perks.hpMult += 0.2; // Linear (+20%)
+                GAME.perks.hpMult += 0.1; // 10% Vida (Linear)
                 player.maxHp = player.baseHp * GAME.perks.hpMult; 
                 player.hp = player.maxHp; 
                 updateHUD(); 
@@ -1182,6 +1201,12 @@
                         document.getElementById('priceShield').innerText = "COMPRADO";
                         document.getElementById('priceShield').style.color = "#0f0";
                         document.getElementById('btnBuyShield').style.opacity = "0.5";
+                    }
+                } else if(type === 'nuke') {
+                    if(!GAME.nukeReady) {
+                        GAME.money -= cost;
+                        GAME.nukeReady = true;
+                        document.getElementById('shopMoney').innerText = GAME.money;
                     }
                 } else {
                     GAME.money -= cost; 
