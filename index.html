@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neon Ops: Infinite War - Ultimate Balance</title>
+    <title>Neon Ops: Infinite War - Perfect Loot</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap');
 
@@ -19,7 +19,7 @@
         .bars { display: flex; flex-direction: column; gap: 4px; pointer-events: none; }
         .bar-bg { width: 130px; height: 12px; background: #222; border: 1px solid #555; transform: skewX(-15deg); }
         .hp-fill { width: 100%; height: 100%; background: #f00; transition: width 0.2s ease-out; } 
-        .sh-fill { width: 0%; height: 100%; background: #00aaff; } 
+        .sh-fill { width: 0%; height: 100%; background: #00aaff; transition: width 0.1s linear; } 
         
         .info { text-align: right; text-shadow: 1px 1px 2px black; pointer-events: none; }
         .lvl { font-size: 24px; color: #ffeb3b; font-weight: bold; display: block;}
@@ -65,7 +65,7 @@
         .m-icon:active { transform: scale(0.9); background: rgba(0,255,255,0.3); }
         .m-qty { position: absolute; bottom: -2px; right: -2px; background: #f00; font-size: 10px; padding: 1px 4px; border-radius: 3px; font-weight: bold; }
 
-        /* Botão Nuclear - CENTRALIZAÇÃO FIXA */
+        /* Botão Nuclear - CENTRALIZAÇÃO ABSOLUTA */
         #nuke-container {
             position: absolute; 
             top: 100px; 
@@ -234,7 +234,7 @@
         </div>
 
         <button class="btn" onclick="startGame()">INICIAR MISSÃO</button>
-        <button class="btn btn-shop" style="justify-content:center;" onclick="showLeaderboard()">🏆 HISTÓRICO GERAL</button>
+        <button class="btn btn-shop" style="justify-content:center;" onclick="showLeaderboard()">🏆 HISTÓRICO LOCAL</button>
         <button class="btn btn-shop" id="btnGodMode" style="justify-content:center; border-color:#555;" onclick="toggleGodMode()">MODO DEUS: DESATIVADO</button>
         
         <div style="display:flex; flex-direction:column; gap:10px; margin-top:10px; align-items:center;">
@@ -244,7 +244,7 @@
     </div>
 
     <div id="leaderboardMenu" class="modal hidden">
-        <h1>HALL DA FAMA</h1>
+        <h1>HALL DA FAMA (LOCAL)</h1>
         <div style="max-height: 60%; overflow-y: auto; width: 100%; display:flex; justify-content:center;">
             <table class="rank-table">
                 <thead><tr><th>#</th><th>NOME</th><th>NÍVEL</th><th>SCORE</th></tr></thead>
@@ -444,11 +444,6 @@
                     if(this.hp > this.maxHp) this.hp = this.maxHp;
                 }
                 
-                if(this.shield > 0) {
-                    this.shield -= 0.166; 
-                    if(this.shield < 0) this.shield = 0;
-                }
-                
                 document.getElementById('hpBar').style.width = (this.hp/this.maxHp*100) + '%';
                 document.getElementById('shBar').style.width = Math.max(0, this.shield) + '%';
             }
@@ -489,14 +484,12 @@
                 if(GAME.godMode) return; 
                 if(this.invulTimer > 0) return; 
 
-                // ESCUDO AGORA É TÁTICO: PERDE 20% FIXO POR TIRO (TANCA 5 HITS)
-                // Isso o torna efetivo em qualquer nível
+                // ESCUDO: Perde 20% da barra (tanca 5 tiros fixos)
                 if(this.shield > 0) {
                     this.shield -= 20; 
                     if(this.shield < 0) this.shield = 0;
                     showText(this.x, this.y, "BLOQUEADO!", "#0af");
                     this.invulTimer = 30; 
-                    // NÃO RESETA KILLSTREAK
                     return;
                 }
                 
@@ -842,7 +835,6 @@
             draw();
             drawRadar();
             
-            // NUKE FX
             if(nukeEffect.active) {
                 nukeEffect.r += 20;
                 nukeEffect.alpha -= 0.02;
@@ -912,11 +904,16 @@
                 if(hit || b.life <= 0) bullets.splice(i, 1);
             }
 
-            items.forEach((item, i) => {
+            // --- LÓGICA DE COLETA INTELIGENTE ---
+            for(let i=items.length-1; i>=0; i--) {
+                let item = items[i];
                 if(Math.hypot(player.x-item.x, player.y-item.y) < 35) {
-                    applyItem(item); items.splice(i, 1); updateHUD();
+                    if(applyItem(item)) { // Só remove se o item foi realmente usado
+                        items.splice(i, 1); 
+                        updateHUD();
+                    }
                 }
-            });
+            }
 
             texts.forEach((t,i) => { t.y-=1; t.life--; if(t.life<=0) texts.splice(i, 1); });
 
@@ -933,26 +930,20 @@
 
         function onBotDeath(bot) {
             GAME.botsAlive--; 
-            
-            // Só conta killstreak se NÃO foi morto por Nuke
-            if(!bot.killedByNuke) {
-                GAME.killStreak++; 
-            }
-            
+            if(!bot.killedByNuke) GAME.killStreak++; 
             GAME.money += (bot.type==='boss'?500:50); GAME.score += 50; 
             GAME.stats[bot.type]++;
             
-            // RNG DE HP (Chance de dropar vida)
+            // RNG DE HP
             let hpVal = 0.01; 
             if (bot.type === 'boss') hpVal = 0.30;
             else {
                 const r = Math.random();
-                if(r < 0.60) hpVal = 0.01;      // 60% chance de 1%
-                else if(r < 0.85) hpVal = 0.05; // 25% chance de 5%
-                else if(r < 0.98) hpVal = 0.10; // 13% chance de 10%
-                else hpVal = 0.15;              // 2% chance de 15% (Raro)
+                if(r < 0.50) hpVal = 0.01;      
+                else if(r < 0.80) hpVal = 0.05; 
+                else if(r < 0.95) hpVal = 0.10; 
+                else hpVal = 0.15;              
             }
-            
             items.push({x:bot.x, y:bot.y, type:'hp', val: hpVal});
             
             if(GAME.killStreak >= 3) { GAME.nukeReady=true; updateNuke(); showText(player.x, player.y-50, "NUCLEAR PRONTA!", "red"); }
@@ -967,36 +958,58 @@
         }
 
         function spawnLootAt(x, y) {
-            const types = ['ammo', 'shield', 'weapon'];
+            const types = ['hp', 'rifle', 'shield', 'shotgun'];
             const t = types[Math.floor(Math.random()*types.length)];
             items.push({x:x, y:y, type:t});
         }
 
         function applyItem(item) {
-            AudioSys.pickup();
-            let txt="", col="#fff";
-            
-            if(item.type==='hp') { 
+            if(item.type === 'hp') {
+                if(player.hp >= player.maxHp) return false; 
+                
                 const val = item.val || 0.01;
                 const healAmt = player.maxHp * val; 
                 player.hp = Math.min(player.maxHp, player.hp + healAmt); 
                 
                 let pct = Math.round(val * 100);
-                txt="VIDA +" + pct + "%"; 
-                if(pct===1) col="#aaa";
-                else if(pct===5) col="#fff";
-                else if(pct===10) col="#ffaa00";
-                else if(pct===15) col="#ff0000";
-                else if(pct===30) col="#00ff00";
+                let col = "#aaa";
+                if(pct===5) col="#fff";
+                if(pct===10) col="#ffaa00";
+                if(pct===15) col="#ff0000";
+                if(pct===30) col="#00ff00";
+                
+                showText(player.x, player.y, "VIDA +" + pct + "%", col);
+                AudioSys.pickup();
+                return true;
             }
-            else if(item.type==='ammo') { 
-                WEAPONS[1].ammo = Math.min(WEAPONS[1].max, WEAPONS[1].ammo + 40); 
-                WEAPONS[2].ammo = Math.min(WEAPONS[2].max, WEAPONS[2].ammo + 15); 
-                txt="RIFLE"; col="#ff0"; 
+            
+            if(item.type === 'rifle') {
+                if(WEAPONS[1].ammo >= WEAPONS[1].max) return false;
+                WEAPONS[1].ammo = Math.min(WEAPONS[1].max, WEAPONS[1].ammo + 60); 
+                showText(player.x, player.y, "RIFLE", "#ff0");
+                AudioSys.pickup();
+                return true;
             }
-            else if(item.type==='shield') { player.shield=100; txt="ESCUDO"; col="#0af"; }
-            else if(item.type==='weapon') { player.wIdx=2; WEAPONS[2].ammo = WEAPONS[2].max; txt="SHOTGUN"; col="#f0f"; updateHUD(); }
-            showText(player.x, player.y, txt, col);
+
+            if(item.type==='shield') { 
+                if(player.shield >= 100) return false; // Escudo cheio não pega
+                player.shield=100; 
+                showText(player.x, player.y, "ESCUDO", "#0af"); 
+                AudioSys.pickup();
+                return true; 
+            }
+            
+            if(item.type==='shotgun') { 
+                if(WEAPONS[2].ammo >= WEAPONS[2].max) return false;
+                player.wIdx=2; 
+                WEAPONS[2].ammo = Math.min(WEAPONS[2].max, WEAPONS[2].ammo + 10); // +10 balas
+                showText(player.x, player.y, "SHOTGUN", "#f0f"); 
+                updateHUD(); 
+                AudioSys.pickup();
+                return true; 
+            }
+            
+            return false;
         }
 
         function createExplosion(x, y, dmg) {
@@ -1012,14 +1025,12 @@
             GAME.shake=60; 
             
             bots.forEach(b => { 
-                b.killedByNuke = true; // Marca que morreu por nuke
+                b.killedByNuke = true; 
                 if (b.type === 'boss') {
-                    // Dano percentual em chefes (30% da vida MAX)
                     let dmg = b.maxHp * 0.30;
                     b.hp -= dmg;
                     showText(b.x, b.y, Math.round(dmg), "red");
                 } else {
-                    // Insta-kill em bots normais
                     b.hp = 0; 
                     showText(b.x, b.y, "INSTA-KILL", "red"); 
                 }
@@ -1051,7 +1062,12 @@
             if(exitPortal) exitPortal.draw();
 
             items.forEach(i => { if(onScreen(i.x, i.y, 20)) {
-                ctx.fillStyle = i.type==='hp'?'#0f0':(i.type==='ammo'?'#ff0':'#00f');
+                // CORES DOS ITENS
+                if (i.type === 'hp') ctx.fillStyle = '#0f0';
+                else if (i.type === 'rifle') ctx.fillStyle = '#ff0';
+                else if (i.type === 'shotgun') ctx.fillStyle = '#f0f'; // ROXO
+                else if (i.type === 'shield') ctx.fillStyle = '#0ff'; // CIANO
+                
                 ctx.beginPath(); ctx.arc(i.x, i.y, 10, 0, Math.PI*2); ctx.fill();
             }});
 
@@ -1077,7 +1093,6 @@
                 ctx.restore();
             }
 
-            // TEXTOS COM BORDA
             texts.forEach((t,i) => { 
                 ctx.font="bold 20px Arial"; 
                 ctx.lineWidth = 3; ctx.strokeStyle = 'black'; ctx.strokeText(t.text, t.x, t.y);
@@ -1162,7 +1177,7 @@
         function pickPerk(type) {
             if(type === 'dmg') GAME.perks.dmg += 0.2; 
             if(type === 'hp') { 
-                GAME.perks.hpMult += 0.1; // 10% Vida (Linear)
+                GAME.perks.hpMult += 0.1; // +10% Linear
                 player.maxHp = player.baseHp * GAME.perks.hpMult; 
                 player.hp = player.maxHp; 
                 updateHUD(); 
@@ -1207,6 +1222,7 @@
                         GAME.money -= cost;
                         GAME.nukeReady = true;
                         document.getElementById('shopMoney').innerText = GAME.money;
+                        updateNuke();
                     }
                 } else {
                     GAME.money -= cost; 
