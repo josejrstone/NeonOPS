@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neon Ops: Infinite War</title>
+    <title>Neon Ops: Infinite War - RNG Update</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap');
 
@@ -18,7 +18,7 @@
         .top-bar { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; align-items: flex-start; pointer-events: auto; }
         .bars { display: flex; flex-direction: column; gap: 4px; pointer-events: none; }
         .bar-bg { width: 130px; height: 12px; background: #222; border: 1px solid #555; transform: skewX(-15deg); }
-        .hp-fill { width: 100%; height: 100%; background: #f00; transition: width 0.1s linear; } 
+        .hp-fill { width: 100%; height: 100%; background: #f00; transition: width 0.2s ease-out; } 
         .sh-fill { width: 0%; height: 100%; background: #00aaff; } 
         
         .info { text-align: right; text-shadow: 1px 1px 2px black; pointer-events: none; }
@@ -31,6 +31,7 @@
         .status-badge { padding: 5px 10px; border-radius: 5px; font-weight: bold; font-size: 14px; animation: blink 0.5s infinite alternate; text-shadow: 0 0 5px black; }
         .st-slow { background: #d35400; color: white; border: 1px solid #e67e22; }
         .st-jam { background: #2980b9; color: white; border: 1px solid #3498db; }
+        .st-god { background: #ffd700; color: black; border: 2px solid #fff; box-shadow: 0 0 10px #ffd700; }
 
         /* Botão Pause */
         #pause-btn {
@@ -64,14 +65,15 @@
         .m-icon:active { transform: scale(0.9); background: rgba(0,255,255,0.3); }
         .m-qty { position: absolute; bottom: -2px; right: -2px; background: #f00; font-size: 10px; padding: 1px 4px; border-radius: 3px; font-weight: bold; }
 
-        /* Botão Nuclear */
+        /* Botão Nuclear - CENTRALIZAÇÃO FIXA */
         #nuke-container {
             position: absolute; 
             top: 100px; 
             left: 50%; 
-            transform: translateX(-50%);
+            transform: translate(-50%, 0); /* Garante centro exato */
             width: 80px; height: 80px; z-index: 100; pointer-events: auto;
             display: none; justify-content: center; align-items: center;
+            margin: 0; padding: 0;
         }
         #nuke-btn {
             width: 70px; height: 70px; background: radial-gradient(#ff0, #f00);
@@ -159,6 +161,9 @@
             padding: 10px; font-size: 18px; border: 2px solid #0ff; background: #111; color: white;
             text-align: center; font-family: 'Rajdhani'; border-radius: 5px; margin-bottom: 15px; width: 250px;
         }
+        .num-input {
+            width: 100px; text-align: center; font-size: 18px; padding: 5px; background: #222; color: #fff; border: 1px solid #555; margin-bottom: 10px;
+        }
 
         @keyframes pulse { 0% { transform: translateX(-50%) scale(1); } 50% { transform: translateX(-50%) scale(1.1); box-shadow: 0 0 20px red; } 100% { transform: translateX(-50%) scale(1); } }
         @keyframes blink { 0% { opacity: 1; } 100% { opacity: 0.5; } }
@@ -212,6 +217,12 @@
     <div id="startMenu" class="modal">
         <h1>NEON OPS<br><span style="font-size:16px; color:white;">INFINITE WAR</span></h1>
         
+        <div style="margin: 10px 0; text-align: center;">
+            <p style="color:#aaa; font-size:14px; margin-bottom:5px;">Nível Inicial:</p>
+            <input type="number" id="startLevelInput" class="num-input" value="1" min="1" max="500">
+            <p style="color:#777; font-size:10px;">(Começar >1 desativa Ranking)</p>
+        </div>
+
         <p style="color:#aaa; font-size:14px;">Cor do Agente</p>
         <div class="color-picker">
             <div class="c-opt selected" style="background:#0ff" onclick="setColor('#0ff', this)"></div>
@@ -220,8 +231,9 @@
             <div class="c-opt" style="background:#ff0" onclick="setColor('#ff0', this)"></div>
         </div>
 
-        <button class="btn" onclick="startGame()">INICIAR GUERRA INFINITA</button>
+        <button class="btn" onclick="startGame()">INICIAR MISSÃO</button>
         <button class="btn btn-shop" style="justify-content:center;" onclick="showLeaderboard()">🏆 HISTÓRICO GERAL</button>
+        <button class="btn btn-shop" id="btnGodMode" style="justify-content:center; border-color:#555;" onclick="toggleGodMode()">MODO DEUS: DESATIVADO</button>
         
         <div style="display:flex; flex-direction:column; gap:10px; margin-top:10px; align-items:center;">
             <button class="btn btn-shop" style="width:250px; font-size:14px;" id="btnModeStart" onclick="cycleControlMode()">CONTROLE: DUPLO</button>
@@ -249,16 +261,19 @@
     </div>
 
     <div id="shopMenu" class="modal hidden">
-        <h2>MISSÃO CUMPRIDA!</h2>
+        <h2 id="shopTitle">MISSÃO CUMPRIDA!</h2>
+        <p id="freePerksMsg" style="color:#ff0; font-weight:bold; display:none;"></p>
+
         <div style="display:flex; gap:15px; font-size:14px; margin-bottom:10px; color:#ccc;">
             <div>Dano: <span id="stat-dmg" style="color:#0ff">100%</span></div>
-            <div>Vida: <span id="stat-hp" style="color:#0f0">100</span></div>
+            <div>Vida: <span id="stat-hp" style="color:#0f0">100%</span></div>
+            <div>Sorte: <span id="stat-luck" style="color:#f0f">1.0x</span></div>
         </div>
 
         <div id="perkSection">
             <p style="color:#aaa; margin:5px; font-size:14px;">Escolha uma Melhoria:</p>
             <div class="perk-container">
-                <div class="perk" onclick="pickPerk('dmg')">⚔️<br>+30% Dano</div>
+                <div class="perk" onclick="pickPerk('dmg')">⚔️<br>+20% Dano</div>
                 <div class="perk" onclick="pickPerk('hp')">❤️<br>+20% Vida</div>
                 <div class="perk" onclick="pickPerk('luck')">🍀<br>+Sorte</div>
             </div>
@@ -282,10 +297,13 @@
         <h2 id="finalScore">SCORE: 0</h2>
         <h3 id="finalLevelDisplay" style="color:#0ff; margin-bottom:10px;">NÍVEL ALCANÇADO: 1</h3>
         
-        <p style="color:#aaa; font-size:14px; margin-bottom:5px;">REGISTRE SEU NOME:</p>
-        <input type="text" id="playerNameInput" class="name-input" placeholder="AGENTE..." maxlength="10">
-        <button class="btn btn-green" id="btnSaveScore" onclick="saveCurrentScore()">SALVAR RECORDE</button>
+        <div id="rankForm">
+            <p style="color:#aaa; font-size:14px; margin-bottom:5px;">REGISTRE SEU NOME:</p>
+            <input type="text" id="playerNameInput" class="name-input" placeholder="AGENTE..." maxlength="10">
+            <button class="btn btn-green" id="btnSaveScore" onclick="saveCurrentScore()">SALVAR RECORDE</button>
+        </div>
         <div id="saveMsg" class="hidden" style="color:#0f0; margin-bottom:10px;">SALVO!</div>
+        <div id="noRankMsg" class="hidden" style="color:#888; font-style:italic; margin-bottom:10px;">Ranking desativado (Início Avançado / God Mode)</div>
 
         <h3>RELATÓRIO</h3>
         <table class="report-table" id="reportTable"></table>
@@ -299,6 +317,7 @@
         const rctx = radarCanvas.getContext('2d');
 
         let loopId = null;
+        let nukeEffect = { active: false, r: 0, alpha: 0 };
 
         function resize() {
             canvas.width = window.innerWidth;
@@ -339,7 +358,12 @@
             killStreak: 0, nukeReady: false, botsAlive: 0,
             playerColor: '#0ff',
             stats: { basic:0, rusher:0, sniper:0, boss:0 },
-            controlMode: 'dual', inverted: false
+            controlMode: 'dual', inverted: false,
+            freePerksAvailable: 0, 
+            validRank: true,
+            godMode: false,
+            maxBotsOnScreen: 10, 
+            botsToSpawn: 0
         };
 
         const INPUT = { 
@@ -358,18 +382,23 @@
         class Player {
             constructor(x, y) {
                 this.x = x; this.y = y; this.r = 20; 
-                this.hp = 100 * GAME.perks.hpMult; this.maxHp = this.hp; 
+                this.baseHp = 500; 
+                this.hp = this.baseHp * GAME.perks.hpMult; 
+                this.maxHp = this.hp; 
                 this.shield = 0; this.wIdx = 0; this.lastShot = 0;
                 this.angle = 0; this.regenTimer = 0;
                 this.slowTimer = 0; this.jamTimer = 0;
+                this.invulTimer = 0; 
             }
             update() {
                 let speedMult = 1;
                 if(this.slowTimer > 0) { speedMult = 0.5; this.slowTimer--; }
                 if(this.jamTimer > 0) { this.jamTimer--; }
+                if(this.invulTimer > 0) { this.invulTimer--; } 
 
                 const statusDiv = document.getElementById('status-effects');
                 let statusHtml = '';
+                if(GAME.godMode) statusHtml += '<div class="status-badge st-god">GOD MODE</div>'; 
                 if(this.slowTimer > 0) statusHtml += '<div class="status-badge st-slow">LENTO</div>';
                 if(this.jamTimer > 0) statusHtml += '<div class="status-badge st-jam">TRAVADO</div>';
                 statusDiv.innerHTML = statusHtml;
@@ -401,9 +430,11 @@
                 this.x = Math.max(20, Math.min(GAME.width-20, this.x));
                 this.y = Math.max(20, Math.min(GAME.height-20, this.y));
                 
+                this.maxHp = this.baseHp * GAME.perks.hpMult;
+
                 if (this.regenTimer > 0) this.regenTimer--;
                 else if (this.hp < this.maxHp && this.hp > 0) {
-                    this.hp += moving ? 0.02 : 0.15;
+                    this.hp += moving ? 0.05 : 0.2; 
                     if(this.hp > this.maxHp) this.hp = this.maxHp;
                 }
                 
@@ -422,12 +453,11 @@
             shoot() {
                 if(this.jamTimer > 0) return;
                 
-                // AUTO SWITCH IF EMPTY
                 let w = WEAPONS[this.wIdx];
                 if (w.ammo !== '∞' && w.ammo <= 0) {
-                    if(WEAPONS[2].ammo > 0) this.wIdx = 2; // Shotgun
-                    else if(WEAPONS[1].ammo > 0) this.wIdx = 1; // Rifle
-                    else this.wIdx = 0; // Pistol
+                    if(WEAPONS[2].ammo > 0) this.wIdx = 2; 
+                    else if(WEAPONS[1].ammo > 0) this.wIdx = 1; 
+                    else this.wIdx = 0; 
                     w = WEAPONS[this.wIdx];
                     updateHUD();
                 }
@@ -450,22 +480,35 @@
                 }
             }
             takeDamage(amt) {
+                if(GAME.godMode) return; 
+                if(this.invulTimer > 0) return; 
+
                 if(this.shield > 0) {
                     this.shield -= amt * 2; 
                     if(this.shield < 0) this.shield = 0;
                     showText(this.x, this.y, "ESCUDO!", "#0af");
+                    this.invulTimer = 30; 
                     return;
                 }
                 this.hp -= amt; this.regenTimer = 300; 
+                this.invulTimer = 60; 
                 GAME.killStreak = 0; updateNuke(); GAME.shake = 10;
                 if(this.hp <= 0) gameOver();
             }
             draw() {
                 if(!onScreen(this.x, this.y, 50)) return;
+                if(this.invulTimer > 0 && !GAME.godMode && this.invulTimer % 10 < 5) return;
+
                 ctx.save(); ctx.translate(this.x, this.y);
                 if(this.shield > 0) { ctx.beginPath(); ctx.arc(0,0,28,0,Math.PI*2); ctx.strokeStyle='#0af'; ctx.lineWidth=3; ctx.stroke(); }
+                
                 ctx.rotate(this.angle);
                 ctx.beginPath(); ctx.arc(0,0,20,0,Math.PI*2); ctx.fillStyle=GAME.playerColor; ctx.fill();
+                
+                if(GAME.godMode) { 
+                    ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 2; ctx.stroke();
+                }
+
                 ctx.fillStyle='#333'; ctx.fillRect(10,-5,20,10);
                 ctx.restore();
             }
@@ -478,12 +521,10 @@
                 this.hp = 50 * (1 + GAME.level*0.1); 
                 this.r=22; this.color='#f00'; this.speed=2; this.view=1000;
                 this.killedByNuke = false;
-                
-                // Variável para padrão de tiro do boss
-                this.shootPattern = 0; // 0: Normal, 1: Radial, 2: Spiral
+                this.shootPattern = 0; 
 
                 if(type === 'boss') {
-                    this.hp = 1500 + (GAME.level*400); this.maxHp=this.hp; this.r=60; this.view=2000;
+                    this.hp = 2000 + (GAME.level*100); this.maxHp=this.hp; this.r=60; this.view=2000;
                     if(Math.random()<0.33) { this.color='#fff'; this.speed=1.0; } 
                     else if(Math.random()<0.5) { this.color='#fa0'; this.speed=2.5; } 
                     else { this.color='#b0f'; this.speed=1.2; } 
@@ -506,28 +547,27 @@
                     }
                     
                     const now = Date.now();
-                    let rate = 1500; let count = 1; let spread = 0.05; let dmg = 8 + GAME.level; let spd = 10;
+                    let rate = 1500; let count = 1; let spread = 0.05; let spd = 10;
+                    
+                    let dmg = Math.min(40, 8 + GAME.level * 0.5); 
+
                     if (this.type === 'rusher') { rate=1000; count=3; spread=0.3; }
                     if (this.type === 'sniper') { rate=2500; spread=0.01; spd=25; dmg*=1.5; }
                     
-                    // BOSS SHOOTING LOGIC
                     if (this.type === 'boss') {
-                        rate = 800; // Atira mais rápido
+                        rate = 800; dmg = Math.min(60, 12 + GAME.level);
                         if(now - this.lastShot > rate) {
                             this.lastShot = now;
-                            this.shootPattern = Math.floor(Math.random() * 3); // Randomiza o ataque
+                            this.shootPattern = Math.floor(Math.random() * 3); 
                             
-                            // PADRÃO 1: Radial (Explosão em volta)
                             if (this.shootPattern === 1) {
-                                const sides = 8 + Math.floor(GAME.level/10); // Aumenta lados com nível
+                                const sides = 8 + Math.floor(GAME.level/10); 
                                 for(let i=0; i<sides; i++) {
                                     const a = (Math.PI*2 / sides) * i;
                                     bullets.push({x:this.x, y:this.y, vx:Math.cos(a)*8, vy:Math.sin(a)*8, dmg:dmg, color:'#f0f', player:false, life:120});
                                 }
                             } 
-                            // PADRÃO 2: Espiral (Tiro giratório)
                             else if (this.shootPattern === 2) {
-                                // Dispara 3 tiros rápidos girando
                                 for(let k=0; k<3; k++) {
                                     setTimeout(() => {
                                         if(this.hp<=0) return;
@@ -536,7 +576,6 @@
                                     }, k*100);
                                 }
                             }
-                            // PADRÃO 0: Focado (Tiro triplo no player)
                             else {
                                 for(let i=0; i<3; i++) {
                                     const s = (Math.random()-0.5)*0.2;
@@ -545,13 +584,13 @@
                             }
                         }
                     } 
-                    // BOTS NORMAIS
                     else if(now - this.lastShot > rate) {
                         this.lastShot = now;
                         for(let i=0; i<count; i++) {
                             const s = (Math.random()-0.5)*spread;
+                            let finalSpd = Math.min(18, spd + GAME.level * 0.05); 
                             bullets.push({
-                                x:this.x, y:this.y, vx:Math.cos(angle+s)*spd, vy:Math.sin(angle+s)*spd,
+                                x:this.x, y:this.y, vx:Math.cos(angle+s)*finalSpd, vy:Math.sin(angle+s)*finalSpd,
                                 dmg:dmg, color:'#f55', player:false, life:100
                             });
                         }
@@ -561,22 +600,51 @@
             draw() {
                 if(!onScreen(this.x, this.y, this.r+20)) return;
                 ctx.save(); ctx.translate(this.x, this.y); ctx.fillStyle = this.color;
-                if (this.type === 'rusher') { ctx.beginPath(); ctx.moveTo(15,0); ctx.lineTo(-10,10); ctx.lineTo(-10,-10); ctx.fill(); }
-                else if (this.type === 'sniper') { ctx.fillRect(-15,-15,30,30); }
-                else { ctx.beginPath(); ctx.arc(0,0,this.r,0,Math.PI*2); ctx.fill(); }
-                if(this.type === 'boss') { ctx.fillStyle='red'; ctx.fillRect(-40,-80,80,10); ctx.fillStyle='#0f0'; ctx.fillRect(-40,-80,80*(this.hp/this.maxHp),10); }
+                
+                if (this.type === 'basic') {
+                    ctx.beginPath(); ctx.moveTo(0, -this.r); ctx.lineTo(this.r, 0); ctx.lineTo(0, this.r); ctx.lineTo(-this.r, 0); ctx.closePath(); ctx.fill();
+                    ctx.fillStyle = '#300'; ctx.fillRect(-5,-5,10,10); 
+                }
+                else if (this.type === 'rusher') { 
+                    ctx.beginPath(); ctx.moveTo(15,0); ctx.lineTo(-10,10); ctx.lineTo(-10,-10); ctx.fill(); 
+                }
+                else if (this.type === 'sniper') { 
+                    ctx.fillRect(-15,-15,30,30); 
+                }
+                else if (this.type === 'boss') {
+                    ctx.beginPath(); ctx.arc(0,0,this.r,0,Math.PI*2); ctx.fill(); 
+                    ctx.fillStyle='red'; ctx.fillRect(-40,-80,80,10); ctx.fillStyle='#0f0'; ctx.fillRect(-40,-80,80*(this.hp/this.maxHp),10); 
+                }
                 ctx.restore();
             }
         }
 
         class Trap {
-            constructor(x, y, type) { this.x=x; this.y=y; this.type=type; this.r=30; this.active=true; }
+            constructor(x, y, type) { this.x=x; this.y=y; this.type=type; this.r=25; this.active=true; }
             draw() {
                 if(!onScreen(this.x, this.y, 30)) return;
-                ctx.save(); ctx.translate(this.x, this.y);
-                if(this.type==='damage') { ctx.fillStyle='#a00'; ctx.beginPath(); ctx.arc(0,0,25,0,Math.PI*2); ctx.fill(); ctx.strokeStyle='red'; ctx.stroke(); }
-                else if(this.type==='slow') { ctx.fillStyle='#850'; ctx.beginPath(); ctx.arc(0,0,25,0,Math.PI*2); ctx.fill(); ctx.strokeStyle='#ca6'; ctx.stroke(); }
-                else if(this.type==='jam') { ctx.fillStyle='#005'; ctx.strokeStyle='#0ff'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(0,0,25,0,Math.PI*2); ctx.fill(); ctx.stroke(); }
+                ctx.save(); ctx.translate(this.x, this.y); 
+                
+                ctx.globalAlpha = 0.6; 
+
+                let mainColor, teethColor;
+                if(this.type==='damage') { mainColor='#500'; teethColor='#f00'; }
+                else if(this.type==='slow') { mainColor='#430'; teethColor='#ea0'; }
+                else if(this.type==='jam') { mainColor='#005'; teethColor='#0ff'; }
+
+                ctx.strokeStyle = teethColor; ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.arc(0,0, this.r, 0, Math.PI*2); ctx.stroke();
+
+                ctx.fillStyle = mainColor;
+                ctx.beginPath();
+                for(let i=0; i<8; i++) {
+                    const angle = (Math.PI*2 / 8) * i;
+                    ctx.lineTo(Math.cos(angle)*this.r, Math.sin(angle)*this.r); 
+                    ctx.lineTo(Math.cos(angle + 0.4)*10, Math.sin(angle+0.4)*10); 
+                }
+                ctx.closePath();
+                ctx.fill();
+
                 ctx.restore();
             }
         }
@@ -619,6 +687,7 @@
 
         function generateWorld() {
             bots=[]; bullets=[]; items=[]; texts=[]; obstacles=[]; machines=[]; traps=[]; exitPortal = null;
+            GAME.botsToSpawn = 0; 
             
             const isBoss = GAME.level % 5 === 0;
             const safeZone = 400;
@@ -640,7 +709,8 @@
 
             for(let i=0; i<10 + (GAME.perks.luck*2); i++) spawnLootAt(Math.random()*GAME.width, Math.random()*GAME.height);
 
-            player = new Player(GAME.width/2, GAME.height/2);
+            if(!player) player = new Player(GAME.width/2, GAME.height/2);
+            else { player.x = GAME.width/2; player.y = GAME.height/2; } 
             
             if (GAME.boughtShield) {
                 player.shield = 100;
@@ -648,60 +718,85 @@
                 showText(player.x, player.y, "ESCUDO ATIVO", "#0af");
             }
 
-            // FUNÇÃO AUXILIAR SPAWN BOTS
-            const spawnBot = (count) => {
-                for(let i=0; i<count; i++) {
-                    let type = 'basic';
-                    if (GAME.level > 2 && Math.random()<0.3) type = 'rusher';
-                    if (GAME.level > 5 && Math.random()<0.2) type = 'sniper';
-                    let bx, by, d;
-                    do { bx=Math.random()*GAME.width; by=Math.random()*GAME.height; d=Math.hypot(bx-player.x, by-player.y); } 
-                    while(d < safeZone);
-                    bots.push(new Bot(bx, by, type));
-                }
-            };
-
-            // LÓGICA DE GERAÇÃO DE CHEFES
             if(isBoss) {
                 let bossCount = 1;
                 if(GAME.level > 50) bossCount = 2;
                 if(GAME.level > 80) bossCount = 3;
                 
-                // Spawna os chefes
                 for(let b=0; b<bossCount; b++) {
-                    // Posições levemente diferentes para não sobrepor
-                    bots.push(new Bot(100 + (b*100), 100 + (b*100), 'boss'));
+                    const angle = (Math.PI*2 / bossCount) * b;
+                    const dist = 800; 
+                    bots.push(new Bot(GAME.width/2 + Math.cos(angle)*dist, GAME.height/2 + Math.sin(angle)*dist, 'boss'));
                 }
                 
                 showText(player.x, player.y-100, `${bossCount > 1 ? bossCount + ' CHEFÕES' : 'CHEFÃO'} DETECTADO!`, "red");
                 
-                // Minions (Bots normais) nas fases de chefe, aumenta muito acima do 50
                 let minionCount = 0;
                 if(GAME.level > 30) minionCount = Math.floor((GAME.level - 30) * 0.5) + 2;
-                if(GAME.level > 60) minionCount += 10; // Mais pressão
+                if(GAME.level > 60) minionCount += 10; 
                 
                 if(minionCount > 0) {
-                    spawnBot(minionCount);
+                    GAME.botsToSpawn = minionCount;
                     showText(player.x, player.y-140, `+${minionCount} REFORÇOS`, "#ff0");
                 }
 
             } else {
-                const count = Math.max(1, Math.floor(GAME.level * 0.8));
-                spawnBot(count);
+                GAME.botsToSpawn = Math.max(5, Math.floor(GAME.level * 1.5));
             }
-            GAME.botsAlive = bots.length;
+            
+            GAME.botsAlive = bots.length + GAME.botsToSpawn;
             updateHUD();
+        }
+
+        function manageSpawner() {
+            if (GAME.botsToSpawn > 0 && bots.length < GAME.maxBotsOnScreen) {
+                let type = 'basic';
+                if (GAME.level > 2 && Math.random()<0.3) type = 'rusher';
+                if (GAME.level > 5 && Math.random()<0.2) type = 'sniper';
+                
+                let bx, by, d;
+                const safeZone = 500; 
+                do { bx=Math.random()*GAME.width; by=Math.random()*GAME.height; d=Math.hypot(bx-player.x, by-player.y); } 
+                while(d < safeZone);
+                
+                bots.push(new Bot(bx, by, type));
+                GAME.botsToSpawn--;
+            }
         }
 
         function startGame() {
             AudioSys.init();
-            document.getElementById('startMenu').classList.add('hidden');
-            document.getElementById('ui-layer').style.display = 'block';
-            GAME.money = 0; GAME.level = 1; GAME.score = 0;
+            const startLvl = parseInt(document.getElementById('startLevelInput').value) || 1;
+            
+            GAME.level = startLvl;
+            GAME.score = 0;
+            GAME.money = 0;
             GAME.perks = { dmg:1, hpMult:1, luck:1 };
             GAME.stats = { basic:0, rusher:0, sniper:0, boss:0 };
             GAME.boughtShield = false;
-            initLevel();
+            
+            if (startLvl > 1) {
+                GAME.validRank = false;
+                GAME.freePerksAvailable = startLvl; 
+                player = new Player(GAME.width/2, GAME.height/2); 
+                openPreparationShop();
+            } else {
+                GAME.validRank = !GAME.godMode;
+                document.getElementById('startMenu').classList.add('hidden');
+                document.getElementById('ui-layer').style.display = 'block';
+                initLevel();
+            }
+        }
+
+        function openPreparationShop() {
+            document.getElementById('startMenu').classList.add('hidden');
+            document.getElementById('shopMenu').classList.remove('hidden');
+            
+            document.getElementById('shopTitle').innerText = "PREPARAÇÃO TÁTICA";
+            document.getElementById('perkSection').classList.remove('hidden');
+            document.getElementById('btnNextLevel').classList.add('hidden');
+            
+            updateShopUI();
         }
 
         function initLevel() {
@@ -710,6 +805,10 @@
             document.getElementById('perkSection').classList.remove('hidden');
             document.getElementById('perkMsg').classList.add('hidden');
             document.getElementById('btnNextLevel').classList.add('hidden');
+            document.getElementById('freePerksMsg').style.display = 'none'; 
+            document.getElementById('ui-layer').style.display = 'block';
+            
+            document.getElementById('shopTitle').innerText = "MISSÃO CUMPRIDA!"; 
             
             document.getElementById('priceShield').innerText = "$200";
             document.getElementById('priceShield').style.color = "#0af";
@@ -717,6 +816,12 @@
 
             GAME.active = true; GAME.paused = false;
             generateWorld();
+            
+            if(player) {
+                player.hp = player.maxHp; 
+                updateHUD(); 
+            }
+
             loop();
         }
 
@@ -725,6 +830,14 @@
             if(!GAME.paused) update();
             draw();
             drawRadar();
+            
+            // NUKE FX
+            if(nukeEffect.active) {
+                nukeEffect.r += 20;
+                nukeEffect.alpha -= 0.02;
+                if(nukeEffect.alpha <= 0) nukeEffect.active = false;
+            }
+
             loopId = requestAnimationFrame(loop);
         }
 
@@ -736,6 +849,8 @@
         function update() {
             if(GAME.shake > 0) GAME.shake *= 0.9;
             
+            manageSpawner(); 
+
             traps.forEach(t => {
                 if(t.active && Math.hypot(player.x-t.x, player.y-t.y) < player.r + t.r) {
                     t.active = false; 
@@ -803,17 +918,26 @@
 
         function onBotDeath(bot) {
             GAME.botsAlive--; 
-            
-            if(!bot.killedByNuke) {
-                GAME.killStreak++; 
-            }
-            
+            if(!bot.killedByNuke) GAME.killStreak++; 
             GAME.money += (bot.type==='boss'?500:50); GAME.score += 50; 
             GAME.stats[bot.type]++;
-            items.push({x:bot.x, y:bot.y, type:'hp'});
+            
+            // NOVO: RNG HP DROP
+            let hpVal = 0;
+            if (bot.type === 'boss') hpVal = 0.30;
+            else {
+                const r = Math.random();
+                if(r < 0.40) hpVal = 0.01;
+                else if(r < 0.70) hpVal = 0.05;
+                else if(r < 0.85) hpVal = 0.10;
+                else if(r < 0.95) hpVal = 0.15;
+                else hpVal = 0.30;
+            }
+            
+            items.push({x:bot.x, y:bot.y, type:'hp', val: hpVal});
             
             if(GAME.killStreak >= 3) { GAME.nukeReady=true; updateNuke(); showText(player.x, player.y-50, "NUCLEAR PRONTA!", "red"); }
-            if(GAME.botsAlive <= 0) spawnPortal(GAME.width/2, GAME.height/2);
+            if(GAME.botsAlive <= 0 && GAME.botsToSpawn <= 0) spawnPortal(GAME.width/2, GAME.height/2);
             updateHUD();
         }
 
@@ -833,11 +957,17 @@
             AudioSys.pickup();
             let txt="", col="#fff";
             
-            // DROP DE VIDA AGORA É EM PORCENTAGEM (30%)
             if(item.type==='hp') { 
-                const healAmt = player.maxHp * 0.30; 
+                const val = item.val || 0.01;
+                const healAmt = player.maxHp * val; 
                 player.hp = Math.min(player.maxHp, player.hp + healAmt); 
-                txt="VIDA +30%"; col="#0f0"; 
+                
+                let pct = Math.round(val * 100);
+                txt="VIDA +" + pct + "%"; 
+                if(pct===1) col="#ccc";
+                else if(pct===5) col="#ff0";
+                else if(pct===10) col="orange";
+                else if(pct===30) col="#0f0";
             }
             else if(item.type==='ammo') { 
                 WEAPONS[1].ammo = Math.min(WEAPONS[1].max, WEAPONS[1].ammo + 40); 
@@ -857,7 +987,11 @@
         function useNuke(e) {
             if(e) { e.preventDefault(); e.stopPropagation(); }
             if(!GAME.nukeReady) return;
+            
+            // START FX
+            nukeEffect = { active: true, r: 10, alpha: 1.0 };
             GAME.shake=60; 
+            
             bots.forEach(b => { 
                 b.hp-=1000; 
                 if (b.hp <= 0) b.killedByNuke = true; 
@@ -906,7 +1040,27 @@
             bullets.forEach(b => { if(onScreen(b.x, b.y, 10)) {
                 ctx.fillStyle=b.color; ctx.beginPath(); ctx.arc(b.x,b.y,4,0,Math.PI*2); ctx.fill(); 
             }});
-            texts.forEach(t => { ctx.fillStyle=t.color; ctx.font="bold 20px Arial"; ctx.fillText(t.text, t.x, t.y); });
+            
+            // DRAW NUKE FX
+            if(nukeEffect.active) {
+                ctx.save();
+                ctx.globalAlpha = nukeEffect.alpha;
+                
+                // Shockwave
+                ctx.beginPath();
+                ctx.arc(player.x, player.y, nukeEffect.r, 0, Math.PI*2);
+                ctx.lineWidth = 20;
+                ctx.strokeStyle = '#fff';
+                ctx.stroke();
+                
+                // Flash
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(GAME.camera.x, GAME.camera.y, canvas.width, canvas.height);
+                
+                ctx.restore();
+            }
+
+            texts.forEach((t,i) => { t.y-=1; t.life--; if(t.life<=0) texts.splice(i, 1); });
 
             ctx.restore();
         }
@@ -960,20 +1114,59 @@
             GAME.active = false;
             document.getElementById('shopMenu').classList.remove('hidden');
             document.getElementById('shopMoney').innerText = GAME.money;
+            updateShopUI();
+        }
+
+        function updateShopUI() {
             document.getElementById('stat-dmg').innerText = Math.round(GAME.perks.dmg * 100) + "%";
-            document.getElementById('stat-hp').innerText = Math.round(player.maxHp);
+            const percentHP = Math.round(GAME.perks.hpMult * 100);
+            document.getElementById('stat-hp').innerText = percentHP + "%";
+            document.getElementById('stat-luck').innerText = GAME.perks.luck.toFixed(1) + "x";
+
+            const msg = document.getElementById('freePerksMsg');
+            if (GAME.freePerksAvailable > 0) {
+                msg.style.display = 'block';
+                msg.innerText = `ESCOLHAS RESTANTES: ${GAME.freePerksAvailable}`;
+                document.getElementById('btnNextLevel').classList.add('hidden'); 
+                document.getElementById('perkSection').classList.remove('hidden'); 
+                document.getElementById('perkMsg').classList.add('hidden');
+            } else {
+                msg.style.display = 'none';
+            }
         }
 
         function nextLevel() { GAME.level++; initLevel(); }
         
         function pickPerk(type) {
-            // AJUSTE: DANO AGORA É 30%, VIDA É 20%
-            if(type === 'dmg') GAME.perks.dmg += 0.3;
-            if(type === 'hp') GAME.perks.hpMult += 0.20;
+            if(type === 'dmg') GAME.perks.dmg += 0.2; 
+            if(type === 'hp') { 
+                GAME.perks.hpMult += 0.2; // Linear (+20%)
+                player.maxHp = player.baseHp * GAME.perks.hpMult; 
+                player.hp = player.maxHp; 
+                updateHUD(); 
+            }
             if(type === 'luck') GAME.perks.luck += 0.5;
-            document.getElementById('perkSection').classList.add('hidden');
-            document.getElementById('perkMsg').classList.remove('hidden');
-            document.getElementById('btnNextLevel').classList.remove('hidden');
+            
+            if(GAME.freePerksAvailable > 0) {
+                GAME.freePerksAvailable--;
+                updateShopUI();
+                
+                if(GAME.freePerksAvailable === 0) {
+                    document.getElementById('perkSection').classList.add('hidden');
+                    const btn = document.getElementById('btnNextLevel');
+                    btn.classList.remove('hidden');
+                    btn.innerText = "INICIAR MISSÃO";
+                    btn.onclick = initLevel; 
+                }
+            } else {
+                updateShopUI();
+                document.getElementById('perkSection').classList.add('hidden');
+                document.getElementById('perkMsg').classList.remove('hidden');
+                const btn = document.getElementById('btnNextLevel');
+                btn.classList.remove('hidden');
+                btn.innerText = "PRÓXIMA MISSÃO";
+                btn.onclick = nextLevel;
+            }
         }
 
         function buyItem(type, cost) {
@@ -1000,10 +1193,17 @@
             document.getElementById('finalLevelDisplay').innerText = `NÍVEL ALCANÇADO: ${GAME.level}`;
             document.getElementById('reportTable').innerHTML = `<tr><td>Grunts</td><td>${GAME.stats.basic}</td></tr><tr><td>Rushers</td><td>${GAME.stats.rusher}</td></tr><tr><td>Snipers</td><td>${GAME.stats.sniper}</td></tr><tr><td>Chefes</td><td>${GAME.stats.boss}</td></tr>`;
             
-            document.getElementById('playerNameInput').value = '';
-            document.getElementById('btnSaveScore').classList.remove('hidden');
-            document.getElementById('playerNameInput').classList.remove('hidden');
-            document.getElementById('saveMsg').classList.add('hidden');
+            if (GAME.validRank) {
+                document.getElementById('rankForm').classList.remove('hidden');
+                document.getElementById('noRankMsg').classList.add('hidden');
+                document.getElementById('playerNameInput').value = '';
+                document.getElementById('btnSaveScore').classList.remove('hidden');
+                document.getElementById('playerNameInput').classList.remove('hidden');
+                document.getElementById('saveMsg').classList.add('hidden');
+            } else {
+                document.getElementById('rankForm').classList.add('hidden');
+                document.getElementById('noRankMsg').classList.remove('hidden');
+            }
         }
         function setColor(c, el) { GAME.playerColor = c; document.querySelectorAll('.c-opt').forEach(d => d.classList.remove('selected')); el.classList.add('selected'); }
 
@@ -1013,6 +1213,8 @@
         }
 
         function saveCurrentScore() {
+            if(!GAME.validRank) return; 
+
             const name = document.getElementById('playerNameInput').value.trim() || "ANÔNIMO";
             let scores = getScores();
             scores.push({ name: name, level: GAME.level, score: GAME.score });
@@ -1061,6 +1263,20 @@
         function closeLeaderboard() {
             document.getElementById('leaderboardMenu').classList.add('hidden');
             document.getElementById('startMenu').classList.remove('hidden');
+        }
+
+        function toggleGodMode() {
+            GAME.godMode = !GAME.godMode;
+            const btn = document.getElementById('btnGodMode');
+            if(GAME.godMode) {
+                btn.innerText = "MODO DEUS: ATIVADO";
+                btn.style.borderColor = "#ffd700";
+                btn.style.color = "#ffd700";
+            } else {
+                btn.innerText = "MODO DEUS: DESATIVADO";
+                btn.style.borderColor = "#555";
+                btn.style.color = "white";
+            }
         }
 
         function registerJoystick(elmId, type) {
