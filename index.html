@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neon Ops: Final Master v2</title>
+    <title>Neon Ops: Portal Fix</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&display=swap');
 
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-user-select: none; touch-action: none; }
-        body { background: #000; overflow: hidden; font-family: 'Rajdhani', sans-serif; color: white; }
-        canvas { display: block; background: #080808; }
+        body { background: #050505; overflow: hidden; font-family: 'Rajdhani', sans-serif; color: white; }
+        canvas { display: block; background: #050505; }
 
         /* --- ICONS SVG --- */
         .icon-svg { width: 30px; height: 30px; filter: drop-shadow(0 0 5px currentColor); fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
@@ -23,8 +23,8 @@
         /* --- MENUS --- */
         .modal {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.6); 
-            backdrop-filter: blur(4px);
+            background: rgba(0, 0, 0, 0.7); 
+            backdrop-filter: blur(8px);
             display: flex; flex-direction: column;
             justify-content: center; align-items: center; 
             z-index: 100; pointer-events: auto;
@@ -33,11 +33,11 @@
         .hidden { display: none !important; opacity: 0; pointer-events: none; }
 
         .menu-card {
-            background: rgba(20, 25, 35, 0.95);
-            border: 1px solid rgba(0, 255, 255, 0.3);
+            background: rgba(10, 15, 25, 0.95);
+            border: 2px solid rgba(0, 255, 255, 0.5);
             border-radius: 15px;
             padding: 30px;
-            box-shadow: 0 0 40px rgba(0,0,0,0.9), 0 0 20px rgba(0, 255, 255, 0.1);
+            box-shadow: 0 0 50px rgba(0, 255, 255, 0.2), inset 0 0 20px rgba(0,0,0,0.5);
             text-align: center;
             width: 400px;
             max-width: 95%;
@@ -54,7 +54,7 @@
         }
         @keyframes fadeInOut { 0% { opacity: 0; transform: translate(-50%, -20px); } 20% { opacity: 1; transform: translate(-50%, 0); } 80% { opacity: 1; } 100% { opacity: 0; } }
 
-        h1 { color: #fff; font-size: 42px; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 15px rgba(0, 255, 255, 0.6); cursor: pointer; }
+        h1 { color: #fff; font-size: 42px; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 15px rgba(0, 255, 255, 0.8); cursor: pointer; }
         h1 span { color: #0ff; font-size: 18px; letter-spacing: 4px; display: block; margin-top: 0px; }
         h2 { color: #ffeb3b; margin: 10px 0; font-size: 20px; text-transform: uppercase; border-bottom: 1px solid #333; padding-bottom: 5px; }
 
@@ -66,9 +66,10 @@
             border: 1px solid #0af; padding: 12px; color: #fff; font-family: 'Rajdhani'; font-size: 20px; font-weight: bold;
             margin: 8px 0; border-radius: 6px; width: 100%; cursor: pointer; text-transform: uppercase; transition: all 0.2s;
             display: flex; justify-content: center; align-items: center;
+            box-shadow: 0 0 10px rgba(0, 170, 255, 0.1);
         }
         .btn:active { transform: scale(0.96); background: rgba(0,170,255,0.4); }
-        .btn:hover { box-shadow: 0 0 15px rgba(0,170,255,0.3); background: rgba(0,170,255,0.2); }
+        .btn:hover { box-shadow: 0 0 20px rgba(0,170,255,0.4); background: rgba(0,170,255,0.3); border-color: #fff; }
         .btn-green { border-color: #0f0; background: linear-gradient(90deg, rgba(0,170,0,0.1), rgba(0,255,0,0.1)); color: #dfd; }
         .btn-red { border-color: #f00; background: linear-gradient(90deg, rgba(170,0,0,0.1), rgba(255,0,0,0.1)); color: #fdd; }
         .btn-gray { border-color: #555; background: #222; color: #aaa; font-size: 16px; padding: 10px; }
@@ -92,7 +93,7 @@
             font-weight: bold; transition: all 0.2s; font-size: 14px; position: relative; overflow: hidden;
         }
         .btn-shop { flex-direction: row; justify-content: space-between; padding: 10px 15px; }
-        .btn-shop:hover, .perk-btn:hover { background: rgba(255,255,255,0.1); border-color: #fff; }
+        .btn-shop:hover, .perk-btn:hover { background: rgba(255,255,255,0.1); border-color: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.2); }
         .btn-shop:active, .perk-btn:active { transform: scale(0.95); }
         .perk-max { opacity: 0.5; pointer-events: none; border-color: #555; background: #222; color: #777; }
         .shop-consumable { border-left: 3px solid #f00; }
@@ -104,12 +105,12 @@
         .top-bar { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; align-items: flex-start; pointer-events: auto; }
         .bars { display: flex; flex-direction: column; gap: 4px; pointer-events: none; }
         .bar-bg { width: 150px; height: 14px; background: rgba(0,0,0,0.7); border: 1px solid #555; transform: skewX(-20deg); overflow: hidden; }
-        .hp-fill { width: 100%; height: 100%; background: linear-gradient(90deg, #a00, #f00); transition: width 0.2s ease-out; } 
-        .sh-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #0055aa, #00aaff); transition: width 0.1s linear; } 
+        .hp-fill { width: 100%; height: 100%; background: linear-gradient(90deg, #a00, #f00); transition: width 0.2s ease-out; box-shadow: 0 0 10px #f00;} 
+        .sh-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #0055aa, #00aaff); transition: width 0.1s linear; box-shadow: 0 0 10px #0af;} 
         .info { text-align: right; text-shadow: 2px 2px 0px #000; pointer-events: none; font-weight: bold; }
-        .lvl { font-size: 26px; color: #ffeb3b; }
+        .lvl { font-size: 26px; color: #ffeb3b; text-shadow: 0 0 10px #ffeb3b; }
         .score { font-size: 20px; color: #fff; }
-        .money { font-size: 22px; color: #0f0; }
+        .money { font-size: 22px; color: #0f0; text-shadow: 0 0 5px #0f0; }
 
         #status-effects { position: absolute; top: 70px; left: 50%; transform: translateX(-50%); display: flex; gap: 5px; pointer-events: none; }
         .status-badge { padding: 4px 8px; border-radius: 3px; font-weight: bold; font-size: 12px; animation: blink 0.5s infinite alternate; text-shadow: 0 0 2px black; box-shadow: 0 0 5px currentColor;}
@@ -299,7 +300,7 @@
     <div id="startMenu" class="modal">
         <div class="menu-card" id="mainCard">
             <div class="config-btn-corner" onclick="toggleSettings()">⚙️</div>
-            <h1 id="gameTitle">NEON OPS<br><span>INFINITE WAR</span></h1>
+            <h1 id="gameTitle">NEON OPS<br><span>CYBER CITY</span></h1>
             
             <div class="input-group">
                 <span class="label">NÍVEL INICIAL</span>
@@ -427,8 +428,8 @@
             }
             draw(ctx, onScreen) {
                 if(onScreen(this.x, this.y, 10)) {
-                    ctx.fillStyle = ENV.type === 'ice' ? '#fff' : '#ca8';
-                    ctx.globalAlpha = 0.5; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1.0;
+                    ctx.fillStyle = ENV.type === 'ice' ? '#0ff' : '#f0f';
+                    ctx.globalAlpha = 0.6; ctx.beginPath(); ctx.rect(this.x, this.y, this.size, this.size); ctx.fill(); ctx.globalAlpha = 1.0;
                 }
             }
         }
@@ -438,6 +439,7 @@
             draw() {
                 if(!onScreen(this.x, this.y, 50)) return;
                 ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.angle);
+                ctx.shadowBlur = 20; ctx.shadowColor = '#b0f';
                 ctx.strokeStyle = '#b0f'; ctx.lineWidth = 4; ctx.beginPath(); ctx.rect(-20,-20,40,40); ctx.stroke();
                 ctx.rotate(this.angle * -2); ctx.beginPath(); ctx.rect(-15,-15,30,30); ctx.stroke(); ctx.restore();
             }
@@ -492,6 +494,7 @@
             isFrozen: false, 
             boughtShield: false,
             killStreak: 0, nukeReady: false, botsAlive: 0,
+            levelKills: 0, 
             playerColor: '#0ff',
             stats: { basic:0, rusher:0, sniper:0, boss:0 },
             controlMode: 'single_auto', inverted: false, 
@@ -502,7 +505,7 @@
             botsToSpawn: 0
         };
 
-        const ENV = { type: 'base', particles: [], conveyors: [], teleporters: [] };
+        const ENV = { type: 'base', particles: [], conveyors: [], teleporters: [], decorations: [] };
         const INPUT = { move: {x:0, y:0, active:false, id:null}, aim: {x:0, y:0, active:false, id:null}, single: {x:0, y:0, active:false, id:null}, manualFire: false };
         const WEAPONS = [
             { id:0, name:'PISTOLA', dmg:25, rate:400, speed:15, spread:0.05, count:1, ammo:'∞', max:Infinity, color:'#fff' },
@@ -580,7 +583,20 @@
                 }
 
                 if (ENV.type === 'ice') { ENV.conveyors.forEach(c => { if (this.x > c.x && this.x < c.x+c.w && this.y > c.y && this.y < c.y+c.h) { this.x += c.dx * 0.1; this.y += c.dy * 0.1; } }); }
-                if (ENV.type === 'dust' && this.tpCooldown <= 0) { ENV.teleporters.forEach(t => { if (Math.hypot(this.x - t.x, this.y - t.y) < 30) { this.x = t.targetX; this.y = t.targetY; this.tpCooldown = 60; AudioSys.pickup(); } }); }
+                
+                // PORTAL LOGIC - FIXED
+                if (this.tpCooldown <= 0) { 
+                    for(let t of ENV.teleporters) {
+                        if (Math.hypot(this.x - t.x, this.y - t.y) < 30) { 
+                            this.x = t.targetX; 
+                            this.y = t.targetY; 
+                            this.tpCooldown = 60; // 1s cooldown
+                            AudioSys.pickup(); 
+                            showText(this.x, this.y, "WARP!", t.color);
+                            break; // Stop immediately to prevent double warp
+                        } 
+                    }
+                }
 
                 this.x = Math.max(20, Math.min(GAME.width-20, this.x));
                 this.y = Math.max(20, Math.min(GAME.height-20, this.y));
@@ -639,7 +655,8 @@
                     this.invulTimer = 30; return;
                 }
                 this.hp -= amt; this.regenTimer = 300; this.invulTimer = 60; 
-                GAME.killStreak = 0; updateNuke(); GAME.shake = 10;
+                GAME.killStreak = 0; // ZERA APENAS SCORE STREAK
+                updateNuke(); GAME.shake = 10;
                 if(this.hp <= 0) gameOver();
             }
             draw() {
@@ -648,9 +665,11 @@
                 ctx.save(); ctx.translate(this.x, this.y);
                 if(this.shield > 0) { ctx.beginPath(); ctx.arc(0,0,28,0,Math.PI*2); ctx.strokeStyle='#0af'; ctx.lineWidth=3; ctx.stroke(); }
                 ctx.rotate(this.angle);
+                ctx.shadowBlur = 10; ctx.shadowColor = GAME.playerColor;
                 ctx.beginPath(); ctx.arc(0,0,20,0,Math.PI*2); ctx.fillStyle=GAME.playerColor; ctx.fill();
                 if(GAME.godMode) { ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 2; ctx.stroke(); }
-                ctx.fillStyle='#333'; ctx.fillRect(10,-5,20,10);
+                ctx.shadowBlur = 0;
+                ctx.fillStyle='#111'; ctx.fillRect(10,-5,20,10);
                 if(this.activeSupport > 0) {
                     for(let i=0; i<3; i++) {
                         const a = (Date.now()/500) + (i * (Math.PI*2/3));
@@ -728,10 +747,14 @@
                 }
             }
             draw() {
-                if(!onScreen(this.x, this.y, this.r+20)) return;
+                if(!onScreen(this.x, this.y, 50)) return;
                 ctx.save(); ctx.translate(this.x, this.y); 
                 if(GAME.isFrozen) ctx.fillStyle = '#0ff'; else ctx.fillStyle = this.color;
-                if (this.type === 'basic') { ctx.beginPath(); ctx.moveTo(0, -this.r); ctx.lineTo(this.r, 0); ctx.lineTo(0, this.r); ctx.lineTo(-this.r, 0); ctx.closePath(); ctx.fill(); ctx.fillStyle = '#300'; ctx.fillRect(-5,-5,10,10); }
+                
+                // Add glow to bots
+                ctx.shadowBlur = 10; ctx.shadowColor = this.color;
+
+                if (this.type === 'basic') { ctx.beginPath(); ctx.moveTo(0, -this.r); ctx.lineTo(this.r, 0); ctx.lineTo(0, this.r); ctx.lineTo(-this.r, 0); ctx.closePath(); ctx.fill(); ctx.fillStyle = '#000'; ctx.fillRect(-5,-5,10,10); }
                 else if (this.type === 'rusher') { ctx.beginPath(); ctx.moveTo(15,0); ctx.lineTo(-10,10); ctx.lineTo(-10,-10); ctx.fill(); }
                 else if (this.type === 'sniper') { ctx.fillRect(-15,-15,30,30); }
                 else if (this.type === 'boss') { ctx.beginPath(); ctx.arc(0,0,this.r,0,Math.PI*2); ctx.fill(); ctx.fillStyle='red'; ctx.fillRect(-40,-80,80,10); ctx.fillStyle='#0f0'; ctx.fillRect(-40,-80,80*(this.hp/this.maxHp),10); }
@@ -743,14 +766,16 @@
             constructor(x, y, type) { this.x=x; this.y=y; this.type=type; this.r=25; this.active=true; }
             draw() {
                 if(!onScreen(this.x, this.y, 30)) return;
-                ctx.save(); ctx.translate(this.x, this.y); ctx.globalAlpha = 0.6; 
+                ctx.save(); ctx.translate(this.x, this.y); ctx.globalAlpha = 0.8; 
                 let mainColor, teethColor;
                 if(this.type==='damage') { mainColor='#500'; teethColor='#f00'; }
                 else if(this.type==='slow') { mainColor='#430'; teethColor='#ea0'; }
                 else if(this.type==='jam') { mainColor='#005'; teethColor='#0ff'; }
+                
+                ctx.shadowBlur = 10; ctx.shadowColor = teethColor;
                 ctx.strokeStyle = teethColor; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0,0, this.r, 0, Math.PI*2); ctx.stroke();
                 ctx.fillStyle = mainColor; ctx.beginPath();
-                for(let i=0; i<8; i++) { const angle = (Math.PI*2 / 8) * i; ctx.lineTo(Math.cos(angle)*this.r, Math.sin(angle)*this.r); ctx.lineTo(Math.cos(angle + 0.4)*10, Math.sin(angle+0.4)*10); }
+                for(let i=0; i<8; i++) { const angle = (Math.PI*2 / 8) * i + (Date.now()/500); ctx.lineTo(Math.cos(angle)*this.r, Math.sin(angle)*this.r); ctx.lineTo(Math.cos(angle + 0.4)*10, Math.sin(angle+0.4)*10); }
                 ctx.closePath(); ctx.fill(); ctx.restore();
             }
         }
@@ -767,7 +792,7 @@
                     if(t) { const ang = Math.atan2(t.y-this.y, t.x-this.x); this.x += Math.cos(ang)*12; this.y += Math.sin(ang)*12; if(Math.hypot(t.x-this.x, t.y-this.y) < 30) { this.dead=true; createExplosion(this.x, this.y, 200); } } else this.dead=true;
                 } else if(this.type === 'grenade' && this.life <= 0) { this.dead=true; createExplosion(this.x, this.y, 300); }
             }
-            draw() { if(onScreen(this.x, this.y, 20)) { ctx.save(); ctx.translate(this.x, this.y); ctx.fillStyle=this.type==='turret'?'#0f0':'#ff0'; ctx.beginPath(); ctx.arc(0,0,15,0,Math.PI*2); ctx.fill(); ctx.restore(); } }
+            draw() { if(onScreen(this.x, this.y, 20)) { ctx.save(); ctx.translate(this.x, this.y); ctx.fillStyle=this.type==='turret'?'#0f0':'#ff0'; ctx.shadowBlur=10; ctx.shadowColor=ctx.fillStyle; ctx.beginPath(); ctx.arc(0,0,15,0,Math.PI*2); ctx.fill(); ctx.restore(); } }
         }
 
         let player = new Player(1250, 1250); 
@@ -777,22 +802,70 @@
             bots=[]; bullets=[]; items=[]; texts=[]; obstacles=[]; machines=[]; traps=[]; exitPortal = null;
             GAME.botsToSpawn = 0; 
             
-            // CAP TRAPS GENERATION (Prevent Lag Spike)
             let trapCount = Math.min(25, 5 + Math.floor(GAME.level));
 
-            ENV.particles = []; ENV.conveyors = []; ENV.teleporters = [];
+            ENV.particles = []; ENV.conveyors = []; ENV.teleporters = []; ENV.decorations = [];
             
             if (GAME.level <= 10) ENV.type = 'base'; else if (GAME.level <= 20) ENV.type = 'ice'; else ENV.type = 'dust';
 
             const isBoss = GAME.level % 5 === 0;
             const safeZone = 400;
 
+            // Generate Floor Decorations (Circuits/Lines)
+            for(let i=0; i<50; i++) {
+                ENV.decorations.push({
+                    x: Math.random() * GAME.width,
+                    y: Math.random() * GAME.height,
+                    w: Math.random() * 100 + 50,
+                    h: Math.random() * 20 + 5,
+                    type: Math.random() < 0.5 ? 'line' : 'circuit'
+                });
+            }
+
             if (ENV.type === 'ice') { for(let i=0; i<100; i++) ENV.particles.push(new Particle()); for(let i=0; i<5; i++) ENV.conveyors.push({x: Math.random()*GAME.width, y: Math.random()*GAME.height, w: 200, h: 50, dx: 5, dy: 0}); } 
-            else if (ENV.type === 'dust') { for(let i=0; i<100; i++) ENV.particles.push(new Particle()); for(let i=0; i<2; i++) { const x1=Math.random()*GAME.width, y1=Math.random()*GAME.height; const x2=Math.random()*GAME.width, y2=Math.random()*GAME.height; const col = i===0 ? '#00f' : '#f90'; ENV.teleporters.push({x:x1, y:y1, targetX:x2, targetY:y2, color:col}); ENV.teleporters.push({x:x2, y:y2, targetX:x1, targetY:y1, color:col}); } }
+            else if (ENV.type === 'dust') { for(let i=0; i<100; i++) ENV.particles.push(new Particle()); }
 
             if(!isBoss || GAME.level > 20) { 
-                for(let i=0; i<30; i++) { let ox, oy, d; do { ox=Math.random()*GAME.width; oy=Math.random()*GAME.height; d=Math.hypot(ox-GAME.width/2, oy-GAME.height/2); } while(d < safeZone); obstacles.push({x:ox, y:oy, w:100, h:100}); }
+                // AUMENTO DE PREDIOS: de 30 para 75
+                for(let i=0; i<75; i++) { 
+                    let ox, oy, d; 
+                    do { ox=Math.random()*GAME.width; oy=Math.random()*GAME.height; d=Math.hypot(ox-GAME.width/2, oy-GAME.height/2); } while(d < safeZone); 
+                    
+                    let ow = 80 + Math.random() * 60;
+                    let oh = 80 + Math.random() * 60;
+                    
+                    obstacles.push({
+                        x:ox, y:oy, w:ow, h:oh, 
+                        type: 'building', 
+                        color: Math.random() < 0.5 ? '#0af' : '#f0f' 
+                    }); 
+                }
                 
+                // PORTAL GENERATION
+                const colors = ['#0ff', '#f0f', '#ff0']; // Cyan, Magenta, Yellow
+                for(let i=0; i<3; i++) {
+                    let p1, p2, valid;
+                    // Find P1
+                    do {
+                        valid = true;
+                        p1 = {x: Math.random()*GAME.width, y: Math.random()*GAME.height};
+                        if(Math.hypot(p1.x - GAME.width/2, p1.y - GAME.height/2) < 400) valid = false; // Too close to spawn
+                        for(let o of obstacles) { if(p1.x > o.x - 50 && p1.x < o.x + o.w + 50 && p1.y > o.y - 50 && p1.y < o.y + o.h + 50) valid = false; }
+                    } while(!valid);
+
+                    // Find P2
+                    do {
+                        valid = true;
+                        p2 = {x: Math.random()*GAME.width, y: Math.random()*GAME.height};
+                        if(Math.hypot(p2.x - GAME.width/2, p2.y - GAME.height/2) < 400) valid = false;
+                        if(Math.hypot(p2.x - p1.x, p2.y - p1.y) < 500) valid = false; // Too close to pair
+                        for(let o of obstacles) { if(p2.x > o.x - 50 && p2.x < o.x + o.w + 50 && p2.y > o.y - 50 && p2.y < o.y + o.h + 50) valid = false; }
+                    } while(!valid);
+
+                    ENV.teleporters.push({x:p1.x, y:p1.y, targetX:p2.x, targetY:p2.y, color:colors[i]});
+                    ENV.teleporters.push({x:p2.x, y:p2.y, targetX:p1.x, targetY:p1.y, color:colors[i]});
+                }
+
                 for(let i=0; i<trapCount; i++) {
                     let type = Math.random()<0.33 ? 'damage' : (Math.random()<0.5?'slow':'jam');
                     traps.push(new Trap(Math.random()*GAME.width, Math.random()*GAME.height, type));
@@ -839,13 +912,12 @@
             
             GAME.level = startLvl;
             GAME.score = 0;
-            // MONEY LOGIC: Only reset if cheat not active
             if(GAME.money !== 9999999) GAME.money = 0;
             
             GAME.perks = { dmg:1, hpMult:1, luck:1 };
             GAME.stats = { basic:0, rusher:0, sniper:0, boss:0 };
             GAME.boughtShield = false;
-            GAME.nukeReady = false; // FORCE RESET NUKE
+            GAME.nukeReady = false; 
             GAME.powers = { freeze: false, fire: false, support: false }; 
             player = new Player(GAME.width/2, GAME.height/2);
             
@@ -869,12 +941,10 @@
             document.getElementById('shopMenu').classList.remove('hidden');
             document.getElementById('shopTitle').innerText = "PREPARAÇÃO TÁTICA";
             document.getElementById('perkSection').classList.remove('hidden');
-            document.getElementById('btnNextLevel').classList.remove('hidden'); // Always visible
+            document.getElementById('btnNextLevel').classList.remove('hidden');
             document.getElementById('btnNextLevel').innerText = "INICIAR MISSÃO";
-            // Correct click handler
             document.getElementById('btnNextLevel').onclick = initLevel; 
             
-            // FORCE MONEY UPDATE
             document.getElementById('shopMoney').innerText = GAME.money;
             
             updateShopUI();
@@ -885,7 +955,6 @@
             document.getElementById('shopMenu').classList.add('hidden');
             document.getElementById('perkSection').classList.remove('hidden');
             document.getElementById('perkMsg').classList.add('hidden');
-            // Reset button for next levels
             const btnNext = document.getElementById('btnNextLevel');
             btnNext.innerText = "PRÓXIMA MISSÃO";
             btnNext.onclick = nextLevel;
@@ -902,8 +971,9 @@
             document.getElementById('btn-fire').className = GAME.powers.fire ? 'm-icon p-icon' : 'hidden';
             document.getElementById('btn-support').className = GAME.powers.support ? 'm-icon p-icon' : 'hidden';
             
-            updateNuke(); // FORCE HIDE NUKE BUTTON IF NOT BOUGHT
-
+            updateNuke();
+            
+            GAME.levelKills = 0; 
             GAME.active = true; GAME.paused = false;
             generateWorld();
             if(player) { player.hp = player.maxHp; updateHUD(); }
@@ -945,7 +1015,6 @@
         function update() {
             if(GAME.shake > 0) GAME.shake *= 0.9;
             
-            // Spawn stuff in demo
             if (demoMode) {
                 if (Math.random() < 0.05 && bots.length < 5) bots.push(new Bot(Math.random()*GAME.width, Math.random()*GAME.height, 'basic'));
                 GAME.camera.x += (player.x - canvas.width/2 - GAME.camera.x) * 0.1;
@@ -960,18 +1029,14 @@
                 if(t.active && Math.hypot(player.x-t.x, player.y-t.y) < player.r + t.r) {
                     t.active = false; 
                     AudioSys.zap();
-                    if(t.type === 'damage') { 
-                        let dmg = Math.floor(player.maxHp * 0.15); 
-                        player.takeDamage(dmg); 
-                        if (!demoMode) showText(player.x, player.y, "MINA!", "red"); 
-                    }
+                    if(t.type === 'damage') { let dmg = Math.floor(player.maxHp * 0.15); player.takeDamage(dmg); if (!demoMode) showText(player.x, player.y, "MINA!", "red"); }
                     if(t.type === 'slow') { player.slowTimer = 180; if (!demoMode) showText(player.x, player.y, "LENTO!", "#d35400"); }
                     if(t.type === 'jam') { player.jamTimer = 180; if (!demoMode) showText(player.x, player.y, "TRAVADO!", "#2980b9"); }
                     updateHUD();
                 }
             });
             traps = traps.filter(t => t.active); 
-            if(traps.length > 25) traps.shift(); // Limit traps on map
+            if(traps.length > 25) traps.shift(); 
 
             player.update();
             obstacles.forEach(o => checkWall(player, o));
@@ -1007,16 +1072,12 @@
                 if(hit || b.life <= 0) bullets.splice(i, 1);
             }
 
-            // Limit items on ground
             if(items.length > 15) items.shift();
 
             for(let i=items.length-1; i>=0; i--) {
                 let item = items[i];
                 if(Math.hypot(player.x-item.x, player.y-item.y) < 35) {
-                    if(applyItem(item)) { 
-                        items.splice(i, 1); 
-                        updateHUD();
-                    }
+                    if(applyItem(item)) { items.splice(i, 1); updateHUD(); }
                 }
             }
 
@@ -1039,21 +1100,28 @@
             if (demoMode) return;
             GAME.botsAlive--; 
             if(!bot.killedByNuke) GAME.killStreak++; 
-            GAME.money += (bot.type==='boss'?500:50); GAME.score += 50; 
+            GAME.money += (bot.type==='boss'?150:8); 
+            GAME.score += 50; 
             GAME.stats[bot.type]++;
             
             let hpVal = 0.01; 
             if (bot.type === 'boss') hpVal = 0.30;
             else {
                 const r = Math.random();
-                if(r < 0.50) hpVal = 0.01;      
-                else if(r < 0.80) hpVal = 0.05; 
-                else if(r < 0.95) hpVal = 0.10; 
-                else hpVal = 0.15;              
+                if(r < 0.50) hpVal = 0.01; else if(r < 0.80) hpVal = 0.05; else if(r < 0.95) hpVal = 0.10; else hpVal = 0.15;              
             }
             items.push({x:bot.x, y:bot.y, type:'hp', val: hpVal});
             
-            if(GAME.killStreak >= 3) { GAME.nukeReady=true; updateNuke(); showText(player.x, player.y-50, "NUCLEAR PRONTA!", "red"); }
+            if(!bot.killedByNuke) {
+                GAME.levelKills++;
+                if(GAME.levelKills >= 15) {
+                    GAME.nukeReady = true; 
+                    GAME.levelKills = 0; 
+                    updateNuke(); 
+                    showText(player.x, player.y-50, "NUCLEAR PRONTA!", "red"); 
+                }
+            }
+            
             if(GAME.botsAlive <= 0 && GAME.botsToSpawn <= 0) spawnPortal(GAME.width/2, GAME.height/2);
             updateHUD();
         }
@@ -1109,36 +1177,100 @@
         }
 
         function draw() {
-            let bgCol = '#111';
-            if (ENV.type === 'ice') bgCol = '#001122';
-            if (ENV.type === 'dust') bgCol = '#221100';
+            // Draw Background Grid
+            let bgCol = '#050505';
+            let gridCol = 'rgba(0, 80, 255, 0.15)';
+            if (ENV.type === 'ice') { bgCol = '#000810'; gridCol = 'rgba(200, 255, 255, 0.15)'; }
+            if (ENV.type === 'dust') { bgCol = '#100500'; gridCol = 'rgba(255, 100, 0, 0.15)'; }
 
             ctx.fillStyle = bgCol; ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.save(); ctx.translate(-Math.floor(GAME.camera.x), -Math.floor(GAME.camera.y));
             
-            ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 2; ctx.beginPath();
-            let startX = Math.floor(GAME.camera.x/200)*200; let startY = Math.floor(GAME.camera.y/200)*200;
-            for(let i=startX; i<startX+canvas.width+200; i+=200) { ctx.moveTo(i,GAME.camera.y); ctx.lineTo(i,GAME.camera.y+canvas.height); }
-            for(let i=startY; i<startY+canvas.height+200; i+=200) { ctx.moveTo(GAME.camera.x,i); ctx.lineTo(GAME.camera.x+canvas.width,i); }
+            // Neon Grid Floor
+            ctx.strokeStyle = gridCol; ctx.lineWidth = 2; ctx.beginPath();
+            let startX = Math.floor(GAME.camera.x/100)*100; let startY = Math.floor(GAME.camera.y/100)*100;
+            for(let i=startX; i<startX+canvas.width+100; i+=100) { ctx.moveTo(i,GAME.camera.y); ctx.lineTo(i,GAME.camera.y+canvas.height); }
+            for(let i=startY; i<startY+canvas.height+100; i+=100) { ctx.moveTo(GAME.camera.x,i); ctx.lineTo(GAME.camera.x+canvas.width,i); }
             ctx.stroke();
+
+            // Draw Floor Decorations
+            ENV.decorations.forEach(d => {
+                if (onScreen(d.x + d.w/2, d.y + d.h/2, d.w)) {
+                    ctx.fillStyle = gridCol;
+                    ctx.fillRect(d.x, d.y, d.w, d.h);
+                }
+            });
 
             ENV.particles.forEach(p => p.draw(ctx, onScreen));
             
             if (ENV.type === 'ice') { ctx.fillStyle = 'rgba(0, 255, 255, 0.2)'; ENV.conveyors.forEach(c => { if (onScreen(c.x + c.w/2, c.y + c.h/2, c.w)) { ctx.fillRect(c.x, c.y, c.w, c.h); ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.beginPath(); ctx.moveTo(c.x+10, c.y+10); ctx.lineTo(c.x+30, c.y+25); ctx.lineTo(c.x+10, c.y+40); ctx.fill(); ctx.fillStyle = 'rgba(0, 255, 255, 0.2)'; } }); }
-            if (ENV.type === 'dust') { ENV.teleporters.forEach(t => { if (onScreen(t.x, t.y, 20)) { ctx.strokeStyle = t.color; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(t.x, t.y, 20, 0, Math.PI*2); ctx.stroke(); ctx.fillStyle = t.color; ctx.globalAlpha = 0.3; ctx.fill(); ctx.globalAlpha = 1.0; } }); }
+            
+            // DRAW NEON PORTALS (Teleporters)
+            ENV.teleporters.forEach(t => { 
+                if (onScreen(t.x, t.y, 30)) { 
+                    ctx.save();
+                    ctx.translate(t.x, t.y);
+                    // Pulsing effect
+                    const s = 1 + Math.sin(Date.now() / 200) * 0.1;
+                    ctx.scale(s, s);
+                    
+                    ctx.shadowBlur = 20; ctx.shadowColor = t.color;
+                    ctx.strokeStyle = t.color; ctx.lineWidth = 3; 
+                    
+                    // Outer Ring
+                    ctx.beginPath(); ctx.arc(0, 0, 25, 0, Math.PI*2); ctx.stroke(); 
+                    
+                    // Inner Spiral
+                    ctx.rotate(Date.now() / 300);
+                    ctx.beginPath();
+                    for(let i=0; i<3; i++) {
+                        ctx.rotate(Math.PI*2/3);
+                        ctx.moveTo(0,0); ctx.lineTo(20, 0);
+                    }
+                    ctx.stroke();
+                    
+                    ctx.restore();
+                } 
+            });
 
             if(exitPortal && !demoMode) exitPortal.draw();
 
             items.forEach(i => { if(onScreen(i.x, i.y, 20)) {
                 if (i.type === 'hp') ctx.fillStyle = '#0f0'; else if (i.type === 'rifle') ctx.fillStyle = '#ff0'; else if (i.type === 'shotgun') ctx.fillStyle = '#f0f'; else if (i.type === 'shield') ctx.fillStyle = '#0ff'; 
+                ctx.shadowBlur = 15; ctx.shadowColor = ctx.fillStyle;
                 ctx.beginPath(); ctx.arc(i.x, i.y, 10, 0, Math.PI*2); ctx.fill();
+                ctx.shadowBlur = 0;
             }});
-            obstacles.forEach(o => { if(onScreen(o.x+o.w/2, o.y+o.h/2, o.w)) { ctx.fillStyle=o.c || '#333'; ctx.fillRect(o.x,o.y,o.w,o.h); ctx.strokeStyle='#555'; ctx.strokeRect(o.x,o.y,o.w,o.h); }});
+
+            // Draw Cyberpunk Buildings (Obstacles)
+            obstacles.forEach(o => { 
+                if(onScreen(o.x+o.w/2, o.y+o.h/2, o.w)) { 
+                    // Base Building
+                    ctx.fillStyle = '#0a0a10'; 
+                    ctx.fillRect(o.x,o.y,o.w,o.h); 
+                    
+                    // Neon Rim
+                    ctx.strokeStyle = o.color; 
+                    ctx.lineWidth = 2;
+                    ctx.shadowBlur = 15; 
+                    ctx.shadowColor = o.color;
+                    ctx.strokeRect(o.x,o.y,o.w,o.h);
+                    
+                    // Windows (Fake 3D detail)
+                    ctx.fillStyle = o.color;
+                    ctx.globalAlpha = 0.5;
+                    ctx.fillRect(o.x + 10, o.y + 10, 10, 10);
+                    ctx.fillRect(o.x + o.w - 20, o.y + o.h - 20, 10, 10);
+                    ctx.globalAlpha = 1.0;
+                    ctx.shadowBlur = 0;
+                }
+            });
+
             traps.forEach(t => t.draw());
             machines.forEach(m => m.draw());
             bots.forEach(b => b.draw());
             if(player) player.draw();
-            bullets.forEach(b => { if(onScreen(b.x, b.y, 10)) { ctx.fillStyle=b.color; ctx.beginPath(); ctx.arc(b.x,b.y,4,0,Math.PI*2); ctx.fill(); }});
+            bullets.forEach(b => { if(onScreen(b.x, b.y, 10)) { ctx.shadowBlur=5; ctx.shadowColor=b.color; ctx.fillStyle=b.color; ctx.beginPath(); ctx.arc(b.x,b.y,4,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0; }});
             
             if(nukeEffect.active) { ctx.save(); ctx.globalAlpha = nukeEffect.alpha; ctx.beginPath(); ctx.arc(player.x, player.y, nukeEffect.r, 0, Math.PI*2); ctx.lineWidth = 20; ctx.strokeStyle = '#fff'; ctx.stroke(); ctx.fillStyle = '#fff'; ctx.fillRect(GAME.camera.x, GAME.camera.y, canvas.width, canvas.height); ctx.restore(); }
             texts.forEach((t,i) => { ctx.font="bold 20px Arial"; ctx.lineWidth = 3; ctx.strokeStyle = 'black'; ctx.strokeText(t.text, t.x, t.y); ctx.fillStyle=t.color; ctx.fillText(t.text, t.x, t.y); });
@@ -1147,11 +1279,63 @@
 
         function drawRadar() {
             rctx.clearRect(0,0,100,100);
-            const sx = 100/GAME.width; const sy = 100/GAME.height;
-            rctx.fillStyle='red'; bots.forEach(b=>{ rctx.beginPath(); rctx.arc(b.x*sx, b.y*sy, 3, 0, Math.PI*2); rctx.fill(); });
-            rctx.fillStyle='yellow'; items.forEach(i=>{ rctx.fillRect(i.x*sx, i.y*sy, 2, 2); });
-            if(exitPortal) { rctx.fillStyle='#b0f'; if(Math.floor(Date.now()/200)%2===0) rctx.fillRect(exitPortal.x*sx-2, exitPortal.y*sy-2, 4, 4); }
-            if(player) { rctx.fillStyle='#0f0'; rctx.beginPath(); rctx.arc(player.x*sx, player.y*sy, 4, 0, Math.PI*2); rctx.fill(); }
+            
+            const sx = 100/GAME.width; 
+            const sy = 100/GAME.height;
+            const cx = 50;
+            const cy = 50;
+            const radiusLimit = 46; 
+
+            // Draw portals on radar
+            ENV.teleporters.forEach(t => {
+                let rx = t.x * sx; let ry = t.y * sy;
+                rctx.fillStyle = t.color;
+                rctx.beginPath(); rctx.arc(rx, ry, 2, 0, Math.PI*2); rctx.fill();
+            });
+
+            bots.forEach(b => { 
+                let rx = b.x * sx;
+                let ry = b.y * sy;
+                let dx = rx - cx; let dy = ry - cy;
+                let dist = Math.hypot(dx, dy);
+                if (dist > radiusLimit) {
+                    let angle = Math.atan2(dy, dx);
+                    rx = cx + Math.cos(angle) * radiusLimit;
+                    ry = cy + Math.sin(angle) * radiusLimit;
+                }
+                rctx.fillStyle = 'red'; rctx.beginPath(); rctx.arc(rx, ry, 3, 0, Math.PI*2); rctx.fill(); 
+            });
+
+            rctx.fillStyle='yellow'; 
+            items.forEach(i => { 
+                let rx = i.x * sx; let ry = i.y * sy;
+                let dx = rx - cx; let dy = ry - cy;
+                if(Math.hypot(dx, dy) < radiusLimit) { rctx.fillRect(rx, ry, 2, 2); }
+            });
+
+            if(exitPortal) { 
+                rctx.fillStyle='#b0f'; 
+                let px = exitPortal.x * sx; let py = exitPortal.y * sy;
+                let dx = px - cx; let dy = py - cy;
+                if (Math.hypot(dx, dy) > radiusLimit) {
+                    let a = Math.atan2(dy, dx);
+                    px = cx + Math.cos(a) * radiusLimit;
+                    py = cy + Math.sin(a) * radiusLimit;
+                }
+                if(Math.floor(Date.now()/200)%2===0) rctx.fillRect(px-2, py-2, 4, 4); 
+            }
+
+            if(player) { 
+                rctx.fillStyle='#0f0'; 
+                let px = player.x * sx; let py = player.y * sy;
+                let dx = px - cx; let dy = py - cy;
+                if (Math.hypot(dx, dy) > radiusLimit) {
+                    let a = Math.atan2(dy, dx);
+                    px = cx + Math.cos(a) * radiusLimit;
+                    py = cy + Math.sin(a) * radiusLimit;
+                }
+                rctx.beginPath(); rctx.arc(px, py, 4, 0, Math.PI*2); rctx.fill(); 
+            }
         }
 
         function updateHUD() {
@@ -1226,7 +1410,15 @@
             loop(); 
         }
 
-        function levelComplete() { GAME.active = false; document.getElementById('shopMenu').classList.remove('hidden'); document.getElementById('shopMoney').innerText = GAME.money; updateShopUI(); }
+        function levelComplete() { 
+            GAME.active = false; 
+            // MODIFICADO: Ganha 1 ponto de melhoria ao passar de nível
+            GAME.freePerksAvailable++; 
+            
+            document.getElementById('shopMenu').classList.remove('hidden'); 
+            document.getElementById('shopMoney').innerText = GAME.money; 
+            updateShopUI(); 
+        }
         
         function updateShopUI() { 
             document.getElementById('stat-dmg').innerText = Math.round(GAME.perks.dmg * 100) + "%"; 
@@ -1275,15 +1467,16 @@
             }
 
             const msg = document.getElementById('freePerksMsg'); 
+            const btn = document.getElementById('btnNextLevel');
             if (GAME.freePerksAvailable > 0) { 
                 msg.style.display = 'block'; 
                 msg.innerText = `MELHORIAS RESTANTES: ${GAME.freePerksAvailable}`;
-                const btn = document.getElementById('btnNextLevel');
                 btn.classList.remove('hidden'); 
                 document.getElementById('perkSection').classList.remove('hidden'); 
                 document.getElementById('perkMsg').classList.add('hidden'); 
             } else { 
                 msg.style.display = 'none'; 
+                btn.classList.remove('hidden'); // Ensure button is visible even if perks are 0
             } 
         }
         
@@ -1400,40 +1593,29 @@
         registerJoystick('joy-move', 'move'); registerJoystick('joy-aim', 'aim'); registerJoystick('joy-single', 'single'); 
 
         function applyControlMode() {
-            const mMove = document.getElementById('joy-move'); const mAim = document.getElementById('joy-aim'); const mSingle = document.getElementById('joy-single'); const btnFire = document.getElementById('fire-btn'); const btnW = document.getElementById('swapBtn'); 
-            const machines = document.getElementById('machines-cont'); 
-            const powers = document.getElementById('powers-cont');
-            
+            const mMove = document.getElementById('joy-move'); const mAim = document.getElementById('joy-aim'); const mSingle = document.getElementById('joy-single'); const btnFire = document.getElementById('fire-btn'); const btnW = document.getElementById('swapBtn'); const machines = document.querySelector('.machines'); const powers = document.querySelector('.powers');
             mMove.className = 'joy-zone hidden'; mAim.className = 'joy-zone hidden'; mSingle.className = 'joy-zone hidden'; btnFire.className = 'hidden';
 
             if(GAME.controlMode === 'dual') { 
                 mMove.className = GAME.inverted ? 'joy-zone pos-right' : 'joy-zone pos-left'; 
                 mAim.className = GAME.inverted ? 'joy-zone pos-left' : 'joy-zone pos-right'; 
-                btnW.className = GAME.inverted ? 'w-btn left' : 'w-btn'; // Fix for swap button pos
-                btnW.style.left = GAME.inverted ? '20px' : 'auto'; btnW.style.right = GAME.inverted ? 'auto' : '20px';
-                
-                machines.className = GAME.inverted ? 'machines side-left' : 'machines side-right';
-                powers.className = GAME.inverted ? 'powers side-right' : 'powers side-left';
+                btnW.className = GAME.inverted ? 'w-btn left' : 'w-btn right';
+                machines.style.right = GAME.inverted ? 'auto' : '15px'; machines.style.left = GAME.inverted ? '15px' : 'auto';
+                powers.style.left = GAME.inverted ? 'auto' : '15px'; powers.style.right = GAME.inverted ? '15px' : 'auto';
             } 
             else if (GAME.controlMode === 'single_auto') { 
                 mSingle.className = 'joy-zone pos-center';
-                btnW.style.left = GAME.inverted ? '20px' : 'auto'; btnW.style.right = GAME.inverted ? 'auto' : '20px';
-                machines.className = GAME.inverted ? 'machines side-left' : 'machines side-right'; 
-                powers.className = GAME.inverted ? 'powers side-right' : 'powers side-left'; 
+                btnW.className = GAME.inverted ? 'w-btn left' : 'w-btn right'; 
+                machines.style.right = GAME.inverted ? 'auto' : '15px'; machines.style.left = GAME.inverted ? '15px' : 'auto';
+                powers.style.left = GAME.inverted ? 'auto' : '15px'; powers.style.right = GAME.inverted ? '15px' : 'auto';
             } 
             else if (GAME.controlMode === 'single_manual') { 
                 mSingle.className = GAME.inverted ? 'joy-zone pos-right' : 'joy-zone pos-left'; 
                 btnFire.className = ''; 
-                // Alinhamento do Botão de Troca com o Tiro
-                if (!GAME.inverted) {
-                    btnFire.style.left = 'auto'; btnFire.style.right = '30px'; 
-                    btnW.style.left = 'auto'; btnW.style.right = '20px'; // Align with Fire Right
-                } else {
-                    btnFire.style.left = '30px'; btnFire.style.right = 'auto';
-                    btnW.style.left = '20px'; btnW.style.right = 'auto'; // Align with Fire Left
-                }
-                machines.className = GAME.inverted ? 'machines side-left' : 'machines side-right'; 
-                powers.className = GAME.inverted ? 'powers side-right' : 'powers side-left'; 
+                btnFire.style.left = GAME.inverted ? '30px' : 'auto'; btnFire.style.right = GAME.inverted ? 'auto' : '30px'; 
+                btnW.className = GAME.inverted ? 'w-btn left' : 'w-btn right'; 
+                machines.style.left = GAME.inverted ? 'auto' : '15px'; machines.style.right = GAME.inverted ? '15px' : 'auto'; 
+                powers.style.right = GAME.inverted ? 'auto' : '15px'; powers.style.left = GAME.inverted ? '15px' : 'auto'; 
             }
             updateUIText();
         }
