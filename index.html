@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neon Ops: Portal Fix</title>
+    <title>Neon Ops: Final Audio Fix</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&display=swap');
 
@@ -300,7 +300,7 @@
     <div id="startMenu" class="modal">
         <div class="menu-card" id="mainCard">
             <div class="config-btn-corner" onclick="toggleSettings()">⚙️</div>
-            <h1 id="gameTitle">NEON OPS<br><span>CYBER CITY</span></h1>
+            <h1 id="gameTitle">NEON OPS<br><span>PARTY NIGHT</span></h1>
             
             <div class="input-group">
                 <span class="label">NÍVEL INICIAL</span>
@@ -325,7 +325,8 @@
             
             <button class="btn btn-gray" id="btnModeStart" onclick="cycleControlMode()">CONTROLE: FÁCIL (AUTO)</button>
             <button class="btn btn-gray" id="btnSwapStart" onclick="toggleSide()">LADO: PADRÃO</button>
-            <button class="btn btn-gray" id="btnSound" onclick="toggleSound()">SOM: LIGADO</button>
+            <button class="btn btn-gray" id="btnSoundStart" onclick="toggleSound()">SFX: LIGADO</button>
+            <button class="btn btn-gray" id="btnMusicStart" onclick="toggleMusic()">MÚSICA: LIGADA</button>
             <button class="btn btn-red" id="btnGodMode" onclick="toggleGodMode()">MODO DEUS: OFF</button>
             <button class="btn" style="background:#333; margin-top:20px;" onclick="toggleSettings()">VOLTAR</button>
         </div>
@@ -350,6 +351,8 @@
             <button class="btn btn-green" onclick="togglePause()">CONTINUAR</button>
             <button class="btn btn-gray" id="btnModePause" onclick="cycleControlMode()">CONTROLE: FÁCIL</button>
             <button class="btn btn-gray" id="btnSwapPause" onclick="toggleSide()">LADO: PADRÃO</button>
+            <button class="btn btn-gray" id="btnSoundPause" onclick="toggleSound()">SFX: LIGADO</button>
+            <button class="btn btn-gray" id="btnMusicPause" onclick="toggleMusic()">MÚSICA: LIGADA</button>
             <button class="btn btn-red" onclick="returnToMenu()">SAIR DA MISSÃO</button>
         </div>
     </div>
@@ -453,6 +456,7 @@
         let loopId = null;
         let nukeEffect = { active: false, r: 0, alpha: 0 };
         let demoMode = true; 
+        let beatPulse = 0; // GLOBAL BEAT VAR
 
         function resize() {
             canvas.width = window.innerWidth;
@@ -462,11 +466,97 @@
         window.addEventListener('resize', resize);
         resize();
 
+        // --- MUSIC SYSTEM ---
+        const MusicSys = {
+            ctx: null, playing: false, muted: false,
+            trackId: 0, nextNoteTime: 0, noteIdx: 0,
+            tempo: 120, lookahead: 25, scheduleAheadTime: 0.1,
+            init: function() { 
+                if(!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); 
+            },
+            start: function(lvl) {
+                this.init();
+                if(this.muted) return;
+                // Force reset on level change
+                if (this.playing) this.stop();
+                
+                this.playing = true;
+                this.trackId = (lvl % 3); // 3 Tracks
+                this.tempo = this.trackId === 1 ? 140 : 120; // Fast track 2
+                this.noteIdx = 0;
+                this.nextNoteTime = this.ctx.currentTime + 0.1;
+                this.scheduler();
+            },
+            stop: function() {
+                this.playing = false;
+                if(this.timerID) clearTimeout(this.timerID);
+            },
+            scheduler: function() {
+                if(!this.playing) return;
+                while(this.nextNoteTime < this.ctx.currentTime + this.scheduleAheadTime) {
+                    this.playStep(this.nextNoteTime);
+                    const secondsPerBeat = 60.0 / this.tempo;
+                    this.nextNoteTime += 0.25 * secondsPerBeat; // 16th notes
+                    this.noteIdx = (this.noteIdx + 1) % 16;
+                }
+                this.timerID = setTimeout(() => this.scheduler(), this.lookahead);
+            },
+            playStep: function(time) {
+                if (this.noteIdx % 4 === 0) beatPulse = 1.0; // BEAT VISUAL
+                
+                // KICK
+                if((this.noteIdx % 4 === 0) || (this.trackId === 2 && this.noteIdx % 8 === 2)) {
+                    this.playTone(150, 'sine', time, 0.15, 0.01);
+                }
+                // HI-HAT
+                if(this.noteIdx % 2 === 0) {
+                    this.playNoise(time, 0.05);
+                }
+                // BASS/LEAD
+                if(this.trackId === 0) { // Cyber Pulse
+                    if(this.noteIdx % 4 === 2) this.playTone(110, 'sawtooth', time, 0.1, 0.1); 
+                } else if (this.trackId === 1) { // Neon Rush
+                    const notes = [220, 0, 440, 0, 330, 0, 660, 0];
+                    let freq = notes[this.noteIdx % 8];
+                    if(freq) this.playTone(freq, 'square', time, 0.1, 0.05);
+                } else { // Dark Tension
+                    if(this.noteIdx === 0) this.playTone(65, 'sawtooth', time, 0.4, 0.2);
+                    if(this.noteIdx === 8) this.playTone(70, 'sawtooth', time, 0.4, 0.2);
+                }
+            },
+            playTone: function(freq, type, time, dur, vol) {
+                if(this.muted) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, time);
+                osc.frequency.exponentialRampToValueAtTime(freq/2, time + dur); // Pitch drop
+                gain.gain.setValueAtTime(vol, time);
+                gain.gain.exponentialRampToValueAtTime(0.01, time + dur);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(time); osc.stop(time + dur);
+            },
+            playNoise: function(time, dur) {
+                if(this.muted) return;
+                const bufferSize = this.ctx.sampleRate * dur;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for(let i=0; i<bufferSize; i++) data[i] = Math.random() * 2 - 1;
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = buffer;
+                const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(0.05, time);
+                gain.gain.exponentialRampToValueAtTime(0.01, time + dur);
+                noise.connect(gain); gain.connect(this.ctx.destination);
+                noise.start(time);
+            }
+        };
+
         const AudioSys = {
             ctx: null, muted: false,
             init: function() { if(!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
             playTone: function(freq, type, dur, vol = 0.1) {
-                if(this.muted) return;
+                if(this.muted) return; // FIX: Mute prevents sound creation
                 if(!this.ctx) return;
                 const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
                 osc.type = type; osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
@@ -476,13 +566,14 @@
                 osc.start(); osc.stop(this.ctx.currentTime + dur);
             },
             shoot: function(wId) {
+                if(this.muted) return; // Double check for performance
                 this.init();
                 if(wId===0) this.playTone(600, 'triangle', 0.1); 
                 else if(wId===1) this.playTone(300, 'square', 0.15); 
                 else { this.playTone(100, 'sawtooth', 0.2); this.playTone(120, 'sawtooth', 0.2); }
             },
-            pickup: function() { this.init(); this.playTone(800, 'sine', 0.2); },
-            zap: function() { this.init(); this.playTone(150, 'sawtooth', 0.3); }
+            pickup: function() { if(this.muted) return; this.init(); this.playTone(800, 'sine', 0.2); },
+            zap: function() { if(this.muted) return; this.init(); this.playTone(150, 'sawtooth', 0.3); }
         };
 
         const GAME = {
@@ -821,6 +912,10 @@
                     type: Math.random() < 0.5 ? 'line' : 'circuit'
                 });
             }
+            // Laser background particles
+            for(let i=0; i<20; i++) {
+                ENV.particles.push(new Particle());
+            }
 
             if (ENV.type === 'ice') { for(let i=0; i<100; i++) ENV.particles.push(new Particle()); for(let i=0; i<5; i++) ENV.conveyors.push({x: Math.random()*GAME.width, y: Math.random()*GAME.height, w: 200, h: 50, dx: 5, dy: 0}); } 
             else if (ENV.type === 'dust') { for(let i=0; i<100; i++) ENV.particles.push(new Particle()); }
@@ -908,6 +1003,7 @@
 
         function startGame() {
             AudioSys.init();
+            MusicSys.init();
             const startLvl = parseInt(document.getElementById('startLevelInput').value) || 1;
             
             GAME.level = startLvl;
@@ -978,6 +1074,10 @@
             generateWorld();
             if(player) { player.hp = player.maxHp; updateHUD(); }
             
+            // MUSIC UPDATE LOGIC
+            MusicSys.stop();
+            MusicSys.start(GAME.level); 
+            
             applyControlMode(); 
             loop();
         }
@@ -998,6 +1098,9 @@
             draw();
             drawRadar();
             
+            // BEAT DECAY
+            beatPulse *= 0.9;
+
             if(nukeEffect.active) {
                 nukeEffect.r += 20;
                 nukeEffect.alpha -= 0.02;
@@ -1186,12 +1289,20 @@
             ctx.fillStyle = bgCol; ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.save(); ctx.translate(-Math.floor(GAME.camera.x), -Math.floor(GAME.camera.y));
             
+            // BEAT PULSE EFFECT ON GRID
+            ctx.globalAlpha = 0.5 + (beatPulse * 0.5); // Pulse Opacity
+            
             // Neon Grid Floor
-            ctx.strokeStyle = gridCol; ctx.lineWidth = 2; ctx.beginPath();
+            ctx.strokeStyle = gridCol; ctx.lineWidth = 2 + (beatPulse * 2); // Pulse Width
+            ctx.shadowBlur = beatPulse * 10; ctx.shadowColor = gridCol;
+            
+            ctx.beginPath();
             let startX = Math.floor(GAME.camera.x/100)*100; let startY = Math.floor(GAME.camera.y/100)*100;
             for(let i=startX; i<startX+canvas.width+100; i+=100) { ctx.moveTo(i,GAME.camera.y); ctx.lineTo(i,GAME.camera.y+canvas.height); }
             for(let i=startY; i<startY+canvas.height+100; i+=100) { ctx.moveTo(GAME.camera.x,i); ctx.lineTo(GAME.camera.x+canvas.width,i); }
             ctx.stroke();
+            
+            ctx.globalAlpha = 1.0; ctx.shadowBlur = 0;
 
             // Draw Floor Decorations
             ENV.decorations.forEach(d => {
@@ -1249,16 +1360,16 @@
                     ctx.fillStyle = '#0a0a10'; 
                     ctx.fillRect(o.x,o.y,o.w,o.h); 
                     
-                    // Neon Rim
+                    // Neon Rim PULSING
                     ctx.strokeStyle = o.color; 
                     ctx.lineWidth = 2;
-                    ctx.shadowBlur = 15; 
+                    ctx.shadowBlur = 15 + (beatPulse * 20); 
                     ctx.shadowColor = o.color;
                     ctx.strokeRect(o.x,o.y,o.w,o.h);
                     
                     // Windows (Fake 3D detail)
                     ctx.fillStyle = o.color;
-                    ctx.globalAlpha = 0.5;
+                    ctx.globalAlpha = 0.5 + (beatPulse * 0.3);
                     ctx.fillRect(o.x + 10, o.y + 10, 10, 10);
                     ctx.fillRect(o.x + o.w - 20, o.y + o.h - 20, 10, 10);
                     ctx.globalAlpha = 1.0;
@@ -1367,40 +1478,43 @@
 
         function toggleSound() {
             AudioSys.muted = !AudioSys.muted;
-            const btn = document.getElementById('btnSound');
-            if(AudioSys.muted) { btn.innerText = "SOM: DESLIGADO"; btn.className = "btn btn-red"; }
-            else { btn.innerText = "SOM: LIGADO"; btn.className = "btn btn-gray"; }
+            updateUIText();
+        }
+
+        function toggleMusic() {
+            MusicSys.muted = !MusicSys.muted;
+            if(MusicSys.muted) MusicSys.stop();
+            else if(GAME.active) MusicSys.start(GAME.level);
+            updateUIText();
         }
 
         function togglePause() { GAME.paused = !GAME.paused; if(GAME.paused) { document.getElementById('pauseMenu').classList.remove('hidden'); updateUIText(); } else document.getElementById('pauseMenu').classList.add('hidden'); }
         
         function returnToMenu() {
-            if(loopId) cancelAnimationFrame(loopId); // STOP GAME LOOP
+            if(loopId) cancelAnimationFrame(loopId); 
             GAME.active = false;
             GAME.paused = false;
-            GAME.money = 0; // RESET MONEY ON EXIT
-            GAME.powers = { freeze: false, fire: false, support: false }; // RESET POWERS ON EXIT
-            GAME.inv = { turret:0, missile:0, grenade:0 }; // RESET INV ON EXIT
-            GAME.nukeReady = false; // RESET NUKE
-            GAME.boughtShield = false; // RESET SHIELD
+            GAME.money = 0; 
+            GAME.powers = { freeze: false, fire: false, support: false }; 
+            GAME.inv = { turret:0, missile:0, grenade:0 }; 
+            GAME.nukeReady = false; 
+            GAME.boughtShield = false; 
             demoMode = true;
             
-            // CLEAN UP MODALS
+            MusicSys.stop(); 
+
             document.getElementById('pauseMenu').classList.add('hidden');
             document.getElementById('deadMenu').classList.add('hidden');
-            document.getElementById('shopMenu').classList.add('hidden'); // Close shop if open
+            document.getElementById('shopMenu').classList.add('hidden'); 
             document.getElementById('ui-layer').style.display = 'none';
             document.getElementById('startMenu').classList.remove('hidden');
             
-            // ENSURE MAIN CARD IS VISIBLE
             document.getElementById('mainCard').classList.remove('hidden');
             document.getElementById('settingsCard').classList.add('hidden');
             
-            // RESTART DEMO LOOP
             player = new Player(GAME.width/2, GAME.height * 0.75);
-            player.hp = 500; // Reset HP for demo
+            player.hp = 500; 
             
-            // RESET SHOP DISPLAY
             document.getElementById('shop-q-turret').innerText = "(x0)";
             document.getElementById('shop-q-missile').innerText = "(x0)";
             document.getElementById('shop-q-grenade').innerText = "(x0)";
@@ -1412,9 +1526,7 @@
 
         function levelComplete() { 
             GAME.active = false; 
-            // MODIFICADO: Ganha 1 ponto de melhoria ao passar de nível
             GAME.freePerksAvailable++; 
-            
             document.getElementById('shopMenu').classList.remove('hidden'); 
             document.getElementById('shopMoney').innerText = GAME.money; 
             updateShopUI(); 
@@ -1432,12 +1544,10 @@
                 btnLuck.innerHTML = "<span style='font-size:24px'>🍀</span><br>MAX";
             }
 
-            // UPDATE SHOP QUANTITIES
             document.getElementById('shop-q-turret').innerText = `(x${GAME.inv.turret})`;
             document.getElementById('shop-q-missile').innerText = `(x${GAME.inv.missile})`;
             document.getElementById('shop-q-grenade').innerText = `(x${GAME.inv.grenade})`;
 
-            // UPDATE POWER BUTTONS (RESET TEXT IF NEW GAME)
             const updatePwrBtn = (id, type, name, cost) => {
                 const btn = document.getElementById(id);
                 if(GAME.powers[type]) {
@@ -1454,7 +1564,6 @@
             updatePwrBtn('btnBuyFire', 'fire', '🔥 Fire', 1500);
             updatePwrBtn('btnBuySupport', 'support', '🚁 Drone', 1500);
             
-            // NUKE BUTTON UPDATE
             const btnNuke = document.getElementById('btnBuyNuke');
             if (GAME.nukeReady) {
                  btnNuke.innerHTML = `<span>☢️ Nuke</span> <span style="color:#0f0">COMPRADO</span>`;
@@ -1476,7 +1585,7 @@
                 document.getElementById('perkMsg').classList.add('hidden'); 
             } else { 
                 msg.style.display = 'none'; 
-                btn.classList.remove('hidden'); // Ensure button is visible even if perks are 0
+                btn.classList.remove('hidden'); 
             } 
         }
         
@@ -1518,7 +1627,7 @@
                 GAME.money -= cost; 
                 GAME.powers[type] = true; 
                 document.getElementById('shopMoney').innerText = GAME.money; 
-                updateShopUI(); // REFRESH BUTTON STATE
+                updateShopUI(); 
             } 
         }
 
@@ -1538,26 +1647,25 @@
                         GAME.money -= cost; 
                         GAME.nukeReady = true; 
                         document.getElementById('shopMoney').innerText = GAME.money; 
-                        updateShopUI(); // Update button visual
+                        updateShopUI(); 
                         updateNuke(); 
                     } 
                 } else { 
                     GAME.money -= cost; 
                     GAME.inv[type]++; 
                     document.getElementById('shopMoney').innerText = GAME.money; 
-                    updateShopUI(); // UPDATE QUANTITY
+                    updateShopUI(); 
                 } 
             } 
         }
 
         function gameOver() { 
             GAME.active = false; 
-            GAME.money = 0; // RESET MONEY
-            GAME.powers = { freeze: false, fire: false, support: false }; // RESET POWERS
-            GAME.inv = { turret:0, missile:0, grenade:0 }; // RESET INV
-            GAME.nukeReady = false; // RESET NUKE
+            GAME.money = 0; 
+            GAME.powers = { freeze: false, fire: false, support: false }; 
+            GAME.inv = { turret:0, missile:0, grenade:0 }; 
+            GAME.nukeReady = false; 
             
-            // HIDE ALL OTHER MODALS FIRST
             document.getElementById('shopMenu').classList.add('hidden');
             document.getElementById('pauseMenu').classList.add('hidden');
             document.getElementById('ui-layer').style.display = 'none';
@@ -1579,7 +1687,7 @@
                 document.getElementById('noRankMsg').classList.remove('hidden'); 
             } 
         }
-        function setColor(c, el) { GAME.playerColor = c; document.querySelectorAll('.c-opt').forEach(d => d.classList.remove('selected')); el.classList.add('selected'); player.hp = 0; } // Trick to respawn dummy
+        function setColor(c, el) { GAME.playerColor = c; document.querySelectorAll('.c-opt').forEach(d => d.classList.remove('selected')); el.classList.add('selected'); player.hp = 0; } 
         function getScores() { const s = localStorage.getItem('neonOps_scores'); return s ? JSON.parse(s) : []; }
         function saveCurrentScore() { if(!GAME.validRank) return; const name = document.getElementById('playerNameInput').value.trim() || "ANÔNIMO"; let scores = getScores(); scores.push({ name: name, level: GAME.level, score: GAME.score }); scores.sort((a, b) => { if(b.level !== a.level) return b.level - a.level; return b.score - a.score; }); scores = scores.slice(0, 10); localStorage.setItem('neonOps_scores', JSON.stringify(scores)); document.getElementById('btnSaveScore').classList.add('hidden'); document.getElementById('playerNameInput').classList.add('hidden'); document.getElementById('saveMsg').classList.remove('hidden'); }
         function showLeaderboard() { const scores = getScores(); const tbody = document.getElementById('leaderboardBody'); tbody.innerHTML = ''; if(scores.length === 0) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#aaa;">Nenhum registro ainda</td></tr>'; } else { scores.forEach((s, i) => { let color = '#fff'; if(i===0) color='#ff0'; else if(i===1) color='#ccc'; else if(i===2) color='#b08d55'; const row = `<tr><td style="color:${color}">${i+1}</td><td style="color:${color}">${s.name}</td><td style="color:${color}">${s.level}</td><td style="color:${color}">${s.score}</td></tr>`; tbody.innerHTML += row; }); } document.getElementById('startMenu').classList.add('hidden'); document.getElementById('leaderboardMenu').classList.remove('hidden'); }
@@ -1623,6 +1731,16 @@
         function updateUIText() {
             let mTxt = "FÁCIL (AUTO)"; if(GAME.controlMode === 'single_manual') mTxt = "MÉDIO (MANUAL)"; if(GAME.controlMode === 'dual') mTxt = "DIFÍCIL (DUPLO)"; let sTxt = GAME.inverted ? "LADO: INVERTIDO" : "LADO: PADRÃO";
             document.getElementById('btnModeStart').innerText = "CONTROLE: " + mTxt; document.getElementById('btnModePause').innerText = "CONTROLE: " + mTxt; document.getElementById('btnSwapStart').innerText = sTxt; document.getElementById('btnSwapPause').innerText = sTxt;
+            
+            const sfxTxt = AudioSys.muted ? "SFX: OFF" : "SFX: LIGADO";
+            const sfxCls = AudioSys.muted ? "btn btn-red" : "btn btn-gray";
+            document.getElementById('btnSoundStart').innerText = sfxTxt; document.getElementById('btnSoundStart').className = sfxCls;
+            document.getElementById('btnSoundPause').innerText = sfxTxt; document.getElementById('btnSoundPause').className = sfxCls;
+
+            const musTxt = MusicSys.muted ? "MÚSICA: OFF" : "MÚSICA: LIGADA";
+            const musCls = MusicSys.muted ? "btn btn-red" : "btn btn-gray";
+            document.getElementById('btnMusicStart').innerText = musTxt; document.getElementById('btnMusicStart').className = musCls;
+            document.getElementById('btnMusicPause').innerText = musTxt; document.getElementById('btnMusicPause').className = musCls;
         }
 
         function cycleControlMode() { 
