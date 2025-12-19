@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neon Ops: Final Layout Fix</title>
+    <title>Neon Ops: Final Master v2</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&display=swap');
 
@@ -44,6 +44,7 @@
             position: relative;
         }
 
+        /* Toast */
         #toast-msg {
             position: absolute; top: 15%; left: 50%; transform: translateX(-50%);
             background: rgba(0, 50, 0, 0.9); border: 1px solid #0f0; color: #0f0;
@@ -97,7 +98,6 @@
         .shop-consumable { border-left: 3px solid #f00; }
         .shop-power { border-left: 3px solid #ffeb3b; }
         .shop-arsenal { border-left: 3px solid #0af; }
-        
         .item-qty-display { font-size: 11px; color: #aaa; margin-left: 5px; }
 
         /* --- GAME HUD --- */
@@ -117,25 +117,23 @@
         .st-jam { background: #2980b9; color: white; }
         .st-god { background: #ffd700; color: black; }
 
-        /* --- LAYOUT CORRIGIDO --- */
-        /* Usamos top: 40% para centralizar verticalmente na metade superior da tela */
+        /* === LAYOUT CENTRALIZADO === */
         .machines, .powers { 
-            display: flex; flex-direction: column; gap: 15px; 
-            pointer-events: auto; transition: all 0.3s; 
             position: absolute; 
-            top: 40%; /* Posição central-alta */
-            transform: translateY(-50%);
+            top: 40%; 
+            transform: translateY(-50%); 
+            display: flex; flex-direction: column; gap: 15px; 
+            pointer-events: auto; z-index: 50; 
         }
         
-        /* Classes dinâmicas de lado */
         .side-right { right: 15px; left: auto; }
         .side-left { left: 15px; right: auto; }
 
         .m-icon { 
             width: 50px; height: 50px; background: rgba(10, 20, 30, 0.85); 
-            border: 1px solid rgba(0, 255, 255, 0.3); border-radius: 8px; 
+            border: 1px solid rgba(0, 255, 255, 0.3); border-radius: 10px; 
             display: flex; justify-content: center; align-items: center; position: relative; 
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            box-shadow: 0 0 10px rgba(0,0,0,0.5); cursor: pointer;
         }
         .m-icon:active { transform: scale(0.95); background: rgba(0, 255, 255, 0.2); }
         .m-qty { position: absolute; bottom: -4px; right: -4px; background: #f00; font-size: 10px; padding: 2px 5px; border-radius: 4px; font-weight: bold; box-shadow: 1px 1px 2px black; color: white;}
@@ -169,7 +167,7 @@
         }
         #nuke-btn:active { transform: scale(0.9); }
 
-        /* Botão de Arma: Mantém em baixo, longe dos poderes */
+        /* Botão de Arma: Padrão bottom 170px */
         .w-btn {
             position: absolute; bottom: 170px;
             width: 70px; height: 70px; border-radius: 50%;
@@ -701,11 +699,11 @@
                     if (this.type === 'boss' && dist < 600) move = false;
                     if (move) { this.x += Math.cos(angle)*this.speed; this.y += Math.sin(angle)*this.speed; }
                     const now = Date.now();
-                    let rate = 1500; let count = 1; let spread = 0.05; let spd = 10; let dmg = Math.min(40, 8 + GAME.level * 0.5); 
+                    let rate = 1500; let count = 1; let spread = 0.05; let spd = 10; let dmg = 12 + (GAME.level * 1.5); 
                     if (this.type === 'rusher') { rate=1000; count=3; spread=0.3; }
                     if (this.type === 'sniper') { rate=2500; spread=0.01; spd=25; dmg*=1.5; }
                     if (this.type === 'boss') {
-                        rate = 800; dmg = Math.min(60, 12 + GAME.level);
+                        rate = 800; dmg = 30 + (GAME.level * 3);
                         if(now - this.lastShot > rate) {
                             this.lastShot = now;
                             this.shootPattern = Math.floor(Math.random() * 3); 
@@ -717,7 +715,7 @@
                                 }
                             } else if (this.shootPattern === 2) {
                                 for(let k=0; k<3; k++) {
-                                    setTimeout(() => { if(this.hp<=0) return; const a = angle + (k * 0.5); bullets.push({x:this.x, y:this.y, vx:Math.cos(a)*10, vy:Math.sin(a)*10, dmg:dmg, color:'#f55', player:false, life:100}); }, k*100);
+                                    setTimeout(() => { if(this.hp<=0) return; const a = angle + (k * 0.5); bullets.push({x:this.x, y:this.y, vx:Math.cos(a)*10, vy:Math.sin(a)*10, dmg:dmg, color:'#ff0', player:false, life:100}); }, k*100);
                                 }
                             } else {
                                 for(let i=0; i<3; i++) { const s = (Math.random()-0.5)*0.2; bullets.push({x:this.x, y:this.y, vx:Math.cos(angle+s)*12, vy:Math.sin(angle+s)*12, dmg:dmg, color:'#f55', player:false, life:100}); }
@@ -847,6 +845,7 @@
             GAME.perks = { dmg:1, hpMult:1, luck:1 };
             GAME.stats = { basic:0, rusher:0, sniper:0, boss:0 };
             GAME.boughtShield = false;
+            GAME.nukeReady = false; // FORCE RESET NUKE
             GAME.powers = { freeze: false, fire: false, support: false }; 
             player = new Player(GAME.width/2, GAME.height/2);
             
@@ -902,6 +901,8 @@
             document.getElementById('btn-freeze').className = GAME.powers.freeze ? 'm-icon p-icon' : 'hidden';
             document.getElementById('btn-fire').className = GAME.powers.fire ? 'm-icon p-icon' : 'hidden';
             document.getElementById('btn-support').className = GAME.powers.support ? 'm-icon p-icon' : 'hidden';
+            
+            updateNuke(); // FORCE HIDE NUKE BUTTON IF NOT BOUGHT
 
             GAME.active = true; GAME.paused = false;
             generateWorld();
@@ -1266,9 +1267,11 @@
             if (GAME.nukeReady) {
                  btnNuke.innerHTML = `<span>☢️ Nuke</span> <span style="color:#0f0">COMPRADO</span>`;
                  btnNuke.style.opacity = "0.5";
+                 btnNuke.style.pointerEvents = "none";
             } else {
-                 btnNuke.innerHTML = `<span>☢️ Nuke</span> <span style="color:#f00">$1000</span>`;
+                 btnNuke.innerHTML = `<span>☢️ Nuke</span> <span id="lbl-nuke" style="color:#f00">$1000</span>`;
                  btnNuke.style.opacity = "1";
+                 btnNuke.style.pointerEvents = "auto";
             }
 
             const msg = document.getElementById('freePerksMsg'); 
@@ -1397,29 +1400,40 @@
         registerJoystick('joy-move', 'move'); registerJoystick('joy-aim', 'aim'); registerJoystick('joy-single', 'single'); 
 
         function applyControlMode() {
-            const mMove = document.getElementById('joy-move'); const mAim = document.getElementById('joy-aim'); const mSingle = document.getElementById('joy-single'); const btnFire = document.getElementById('fire-btn'); const btnW = document.getElementById('swapBtn'); const machines = document.querySelector('.machines'); const powers = document.querySelector('.powers');
+            const mMove = document.getElementById('joy-move'); const mAim = document.getElementById('joy-aim'); const mSingle = document.getElementById('joy-single'); const btnFire = document.getElementById('fire-btn'); const btnW = document.getElementById('swapBtn'); 
+            const machines = document.getElementById('machines-cont'); 
+            const powers = document.getElementById('powers-cont');
+            
             mMove.className = 'joy-zone hidden'; mAim.className = 'joy-zone hidden'; mSingle.className = 'joy-zone hidden'; btnFire.className = 'hidden';
 
             if(GAME.controlMode === 'dual') { 
                 mMove.className = GAME.inverted ? 'joy-zone pos-right' : 'joy-zone pos-left'; 
                 mAim.className = GAME.inverted ? 'joy-zone pos-left' : 'joy-zone pos-right'; 
-                btnW.className = GAME.inverted ? 'w-btn left' : 'w-btn right';
-                machines.style.right = GAME.inverted ? 'auto' : '15px'; machines.style.left = GAME.inverted ? '15px' : 'auto';
-                powers.style.left = GAME.inverted ? 'auto' : '15px'; powers.style.right = GAME.inverted ? '15px' : 'auto';
+                btnW.className = GAME.inverted ? 'w-btn left' : 'w-btn'; // Fix for swap button pos
+                btnW.style.left = GAME.inverted ? '20px' : 'auto'; btnW.style.right = GAME.inverted ? 'auto' : '20px';
+                
+                machines.className = GAME.inverted ? 'machines side-left' : 'machines side-right';
+                powers.className = GAME.inverted ? 'powers side-right' : 'powers side-left';
             } 
             else if (GAME.controlMode === 'single_auto') { 
                 mSingle.className = 'joy-zone pos-center';
-                btnW.className = GAME.inverted ? 'w-btn left' : 'w-btn right'; 
-                machines.style.right = GAME.inverted ? 'auto' : '15px'; machines.style.left = GAME.inverted ? '15px' : 'auto';
-                powers.style.left = GAME.inverted ? 'auto' : '15px'; powers.style.right = GAME.inverted ? '15px' : 'auto';
+                btnW.style.left = GAME.inverted ? '20px' : 'auto'; btnW.style.right = GAME.inverted ? 'auto' : '20px';
+                machines.className = GAME.inverted ? 'machines side-left' : 'machines side-right'; 
+                powers.className = GAME.inverted ? 'powers side-right' : 'powers side-left'; 
             } 
             else if (GAME.controlMode === 'single_manual') { 
                 mSingle.className = GAME.inverted ? 'joy-zone pos-right' : 'joy-zone pos-left'; 
                 btnFire.className = ''; 
-                btnFire.style.left = GAME.inverted ? '30px' : 'auto'; btnFire.style.right = GAME.inverted ? 'auto' : '30px'; 
-                btnW.className = GAME.inverted ? 'w-btn left' : 'w-btn right'; 
-                machines.style.left = GAME.inverted ? 'auto' : '15px'; machines.style.right = GAME.inverted ? '15px' : 'auto'; 
-                powers.style.right = GAME.inverted ? 'auto' : '15px'; powers.style.left = GAME.inverted ? '15px' : 'auto'; 
+                // Alinhamento do Botão de Troca com o Tiro
+                if (!GAME.inverted) {
+                    btnFire.style.left = 'auto'; btnFire.style.right = '30px'; 
+                    btnW.style.left = 'auto'; btnW.style.right = '20px'; // Align with Fire Right
+                } else {
+                    btnFire.style.left = '30px'; btnFire.style.right = 'auto';
+                    btnW.style.left = '20px'; btnW.style.right = 'auto'; // Align with Fire Left
+                }
+                machines.className = GAME.inverted ? 'machines side-left' : 'machines side-right'; 
+                powers.className = GAME.inverted ? 'powers side-right' : 'powers side-left'; 
             }
             updateUIText();
         }
